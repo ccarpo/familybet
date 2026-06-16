@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - FamilyBet{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Welcome & Stats -->
+    <div class="bg-white rounded-lg shadow-md p-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-xl font-bold">Hallo, {{ user.name }}! 👋</h1>
+                {% if my_rank %}
+                <p class="text-gray-600 text-sm mt-1">
+                    Platz {{ my_rank.rank }} mit {{ my_rank.total_points }} Punkten
+                </p>
+                {% endif %}
+            </div>
+            <div class="text-right">
+                <a href="{{ url_for('main.leaderboard') }}" class="text-blue-600 text-sm hover:underline">
+                    Rangliste ansehen →
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tournament Bet Status -->
+    <div class="bg-white rounded-lg shadow-md p-4">
+        <h2 class="text-lg font-bold mb-3">🏆 Turniertipp</h2>
+        {% if tournament_bet %}
+        <div class="space-y-2">
+            <div class="flex justify-between items-center">
+                <span class="text-gray-600">Weltmeister:</span>
+                <span class="font-semibold text-green-600">{{ tournament_bet.winner_team_name }}</span>
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-gray-600">Halbfinalisten:</span>
+                <span>{{ tournament_bet.semifinalist1_name }}, {{ tournament_bet.semifinalist2_name }}, {{ tournament_bet.semifinalist3_name }}</span>
+            </div>
+            {% if tournament_bet.points_earned %}
+            <div class="mt-2 pt-2 border-t">
+                <span class="font-bold text-green-600">{{ tournament_bet.points_earned }} Punkte</span>
+            </div>
+            {% endif %}
+        </div>
+        {% else %}
+        <p class="text-gray-500 text-sm">Noch kein Turniertipp abgegeben.</p>
+        {% endif %}
+        
+        {% if not upcoming_matches or not upcoming_matches[0].has_started() %}
+        <a href="{{ url_for('main.matches') }}#tournament-bet" class="mt-3 inline-block text-blue-600 text-sm hover:underline">
+            Turniertipp abgeben/ändern →
+        </a>
+        {% else %}
+        <p class="mt-2 text-xs text-red-500">Turniertipps sind geschlossen (Turnier hat begonnen)</p>
+        {% endif %}
+    </div>
+
+    <!-- Upcoming Matches -->
+    <div class="bg-white rounded-lg shadow-md p-4">
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="text-lg font-bold">📅 Nächste Spiele</h2>
+            <a href="{{ url_for('main.matches') }}" class="text-blue-600 text-sm hover:underline">Alle →</a>
+        </div>
+        
+        {% if upcoming_matches %}
+        <div class="space-y-2">
+            {% for match in upcoming_matches %}
+            <a href="{{ url_for('main.match_detail', match_id=match.id) }}" 
+               class="match-card block border rounded-lg p-3 hover:bg-gray-50">
+                <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                        <div class="text-xs text-gray-500">{{ match.round_name }}</div>
+                        <div class="flex items-center justify-between mt-1">
+                            <span class="font-medium">{{ match.team1_name }}</span>
+                            <span class="text-gray-400 mx-2">vs</span>
+                            <span class="font-medium">{{ match.team2_name }}</span>
+                        </div>
+                    </div>
+                    <div class="text-right text-xs text-gray-500 ml-3">
+                        {{ match.match_date.strftime('%d.%m. %H:%M') }}
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-500 text-sm">Keine kommenden Spiele.</p>
+        {% endif %}
+    </div>
+
+    <!-- Recent Bets -->
+    <div class="bg-white rounded-lg shadow-md p-4">
+        <h2 class="text-lg font-bold mb-3">🎯 Meine letzten Tipps</h2>
+        
+        {% if my_bets %}
+        <div class="space-y-2">
+            {% for bet in my_bets %}
+            <div class="flex items-center justify-between py-2 border-b last:border-0">
+                <div>
+                    <span class="text-sm">{{ bet.match.team1_name }} vs {{ bet.match.team2_name }}</span>
+                    <div class="text-xs text-gray-500">
+                        Dein Tipp: {{ bet.team1_score_pred }}:{{ bet.team2_score_pred }}
+                    </div>
+                </div>
+                {% if bet.match.is_finished %}
+                <div class="text-right">
+                    <span class="text-xs text-gray-500">
+                        Ergebnis: {{ bet.match.team1_score }}:{{ bet.match.team2_score }}
+                    </span>
+                    <div class="font-bold {% if bet.points_earned > 0 %}text-green-600{% else %}text-red-500{% endif %}">
+                        {{ bet.points_earned }} Punkte
+                    </div>
+                </div>
+                {% else %}
+                <span class="text-xs text-gray-400">noch offen</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-500 text-sm">Noch keine Tipps abgegeben.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

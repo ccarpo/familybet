@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Spiele - FamilyBet{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <h1 class="text-2xl font-bold">📅 Alle Spiele</h1>
+
+    <!-- Tournament Bet Form (only if tournament hasn't started) -->
+    {% if rounds %}
+        {% set first_round = rounds.values()|first %}
+        {% if first_round and not first_round[0].has_started() %}
+        <div id="tournament-bet" class="bg-yellow-50 border border-yellow-300 rounded-lg p-4">
+            <h2 class="text-lg font-bold mb-3">🏆 Turniertipp abgeben</h2>
+            <p class="text-sm text-gray-600 mb-3">Tippe vor Turnierbeginn den Weltmeister und die anderen 3 Halbfinalisten.</p>
+            
+            {% set all_teams = [] %}
+            {% for round_matches in rounds.values() %}
+                {% for match in round_matches %}
+                    {% if match.team1_id not in all_teams %}
+                        {% set _ = all_teams.append(match.team1_id) %}
+                    {% endif %}
+                    {% if match.team2_id not in all_teams %}
+                        {% set _ = all_teams.append(match.team2_id) %}
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+            
+            <form method="POST" action="{{ url_for('bets.place_tournament_bet') }}" class="space-y-3">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Weltmeister</label>
+                    <select name="winner_team_id" required class="w-full border rounded px-3 py-2">
+                        <option value="">Wählen...</option>
+                        {% for round_matches in rounds.values() %}
+                            {% for match in round_matches %}
+                                {% if match.team1_id not in all_teams %}
+                                    <option value="{{ match.team1_id }}" data-name="{{ match.team1_name }}">{{ match.team1_name }}</option>
+                                {% endif %}
+                                {% if match.team2_id not in all_teams %}
+                                    <option value="{{ match.team2_id }}" data-name="{{ match.team2_name }}">{{ match.team2_name }}</option>
+                                {% endif %}
+                                {% if match.team1_id not in all_teams %}{% set _ = all_teams.append(match.team1_id) %}{% endif %}
+                                {% if match.team2_id not in all_teams %}{% set _ = all_teams.append(match.team2_id) %}{% endif %}
+                            {% endfor %}
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Halbfinalist 1</label>
+                        <select name="semifinalist1_id" required class="w-full border rounded px-2 py-2 text-sm">
+                            <option value="">...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Halbfinalist 2</label>
+                        <select name="semifinalist2_id" required class="w-full border rounded px-2 py-2 text-sm">
+                            <option value="">...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Halbfinalist 3</label>
+                        <select name="semifinalist3_id" required class="w-full border rounded px-2 py-2 text-sm">
+                            <option value="">...</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <input type="hidden" name="winner_team_name" id="winner_name">
+                <input type="hidden" name="semifinalist1_name" id="sf1_name">
+                <input type="hidden" name="semifinalist2_name" id="sf2_name">
+                <input type="hidden" name="semifinalist3_name" id="sf3_name">
+                
+                <button type="submit" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">
+                    Turniertipp speichern
+                </button>
+            </form>
+        </div>
+        {% endif %}
+    {% endif %}
+
+    <!-- Matches by Round -->
+    {% for round_name, matches in rounds.items() %}
+    <div class="bg-white rounded-lg shadow-md p-4">
+        <h2 class="text-lg font-bold mb-3 text-blue-800">{{ round_name }}</h2>
+        
+        <div class="space-y-2">
+            {% for match in matches %}
+            <a href="{{ url_for('main.match_detail', match_id=match.id) }}" 
+               class="match-card block border rounded-lg p-3 {% if match.is_finished %}bg-gray-50{% elif match.has_started() %}bg-yellow-50{% else %}bg-white{% endif %}">
+                <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1">
+                                <div class="font-medium">{{ match.team1_name }}</div>
+                                {% if match.team1_short %}
+                                <div class="text-xs text-gray-500">{{ match.team1_short }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="px-4 text-center">
+                                {% if match.is_finished %}
+                                <span class="text-xl font-bold">{{ match.team1_score }} - {{ match.team2_score }}</span>
+                                {% elif match.has_started() %}
+                                <span class="text-sm text-yellow-600">Live</span>
+                                {% else %}
+                                <span class="text-sm text-gray-400">vs</span>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="flex-1 text-right">
+                                <div class="font-medium">{{ match.team2_name }}</div>
+                                {% if match.team2_short %}
+                                <div class="text-xs text-gray-500">{{ match.team2_short }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="ml-4 text-right text-xs">
+                        <div class="text-gray-500">{{ match.match_date.strftime('%d.%m. %H:%M') }}</div>
+                        {% if match.id in my_bets %}
+                            {% set bet = my_bets[match.id] %}
+                            <div class="mt-1">
+                                <span class="text-blue-600">Tipp: {{ bet.team1_score_pred }}:{{ bet.team2_score_pred }}</span>
+                                {% if match.is_finished %}
+                                <span class="{% if bet.points_earned > 0 %}text-green-600{% else %}text-red-500{% endif %} font-semibold">
+                                    ({{ bet.points_earned }}P)
+                                </span>
+                                {% endif %}
+                            </div>
+                        {% elif not match.has_started() %}
+                            <span class="text-orange-500">Noch nicht getippt</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+// Populate team dropdowns
+document.addEventListener('DOMContentLoaded', function() {
+    // Get all unique teams from the page
+    const teams = new Map();
+    document.querySelectorAll('.match-card').forEach(card => {
+        const team1El = card.querySelector('.font-medium');
+        const team2El = card.querySelectorAll('.font-medium')[1];
+        // This is simplified - in a real app we'd have data attributes
+    });
+});
+</script>
+{% endblock %}

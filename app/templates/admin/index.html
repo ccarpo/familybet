@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Admin - FamilyBet{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <h1 class="text-2xl font-bold">⚙️ Admin-Bereich</h1>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-lg shadow p-4 text-center">
+            <div class="text-2xl font-bold text-blue-600">{{ stats.total_users }}</div>
+            <div class="text-sm text-gray-500">Benutzer</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 text-center">
+            <div class="text-2xl font-bold text-green-600">{{ stats.total_matches }}</div>
+            <div class="text-sm text-gray-500">Spiele</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 text-center">
+            <div class="text-2xl font-bold text-purple-600">{{ stats.finished_matches }}</div>
+            <div class="text-sm text-gray-500">Beendet</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 text-center">
+            <div class="text-2xl font-bold text-orange-600">{{ stats.total_bets }}</div>
+            <div class="text-sm text-gray-500">Tipps</div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="bg-white rounded-lg shadow-md p-4">
+        <h2 class="text-lg font-bold mb-3">🔄 Aktionen</h2>
+        
+        <div class="flex flex-wrap gap-2">
+            <form method="POST" action="{{ url_for('admin.sync_matches') }}" class="inline">
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    Spiele synchronisieren
+                </button>
+            </form>
+            
+            <form method="POST" action="{{ url_for('admin.recalculate_points') }}" class="inline">
+                <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                    Punkte neu berechnen
+                </button>
+            </form>
+            
+            <form method="POST" action="{{ url_for('admin.calculate_tournament_points') }}" class="inline">
+                <button type="submit" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+                    Turnierpunkte berechnen
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add User -->
+    <div class="bg-white rounded-lg shadow-md p-4">
+        <h2 class="text-lg font-bold mb-3">➕ Benutzer hinzufügen</h2>
+        
+        <form method="POST" action="{{ url_for('admin.add_user') }}" class="space-y-3">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Name *</label>
+                    <input type="text" name="name" required 
+                           class="w-full border rounded px-3 py-2"
+                           placeholder="Max Mustermann">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Email</label>
+                    <input type="email" name="email" 
+                           class="w-full border rounded px-3 py-2"
+                           placeholder="max@example.com">
+                </div>
+            </div>
+            
+            <div class="flex items-center">
+                <input type="checkbox" name="is_admin" id="is_admin" class="mr-2">
+                <label for="is_admin" class="text-sm">Admin-Rechte</label>
+            </div>
+            
+            <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                Benutzer erstellen
+            </button>
+        </form>
+    </div>
+
+    <!-- Users List -->
+    <div class="bg-white rounded-lg shadow-md p-4">
+        <h2 class="text-lg font-bold mb-3">👥 Benutzer</h2>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="text-left px-3 py-2">Name</th>
+                        <th class="text-left px-3 py-2">Email</th>
+                        <th class="text-center px-3 py-2">Admin</th>
+                        <th class="text-right px-3 py-2">Punkte</th>
+                        <th class="text-center px-3 py-2">Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                    <tr class="border-b">
+                        <td class="px-3 py-2 font-medium">{{ u.name }}</td>
+                        <td class="px-3 py-2 text-gray-500">{{ u.email or '-' }}</td>
+                        <td class="px-3 py-2 text-center">
+                            {% if u.is_admin %}✓{% else %}-{% endif %}
+                        </td>
+                        <td class="px-3 py-2 text-right font-semibold">
+                            {{ u.get_total_points() }}
+                        </td>
+                        <td class="px-3 py-2 text-center">
+                            <a href="{{ url_for('admin.user_bets', user_id=u.id) }}" 
+                               class="text-blue-600 hover:underline text-xs">
+                                Tipps verwalten
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

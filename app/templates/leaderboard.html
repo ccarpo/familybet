@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Rangliste - FamilyBet{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <h1 class="text-2xl font-bold mb-6 text-center">🏆 Rangliste</h1>
+
+    {% if entries %}
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <!-- Header Row -->
+        <div class="bg-gray-50 border-b px-4 py-3 grid grid-cols-12 gap-2 text-sm font-semibold text-gray-600">
+            <div class="col-span-1 text-center">Platz</div>
+            <div class="col-span-4">Name</div>
+            <div class="col-span-2 text-center">🎯 5P</div>
+            <div class="col-span-2 text-center">📊 3P</div>
+            <div class="col-span-2 text-center">✓ 1P</div>
+            <div class="col-span-1 text-right">Gesamt</div>
+        </div>
+
+        <!-- Data Rows -->
+        {% for entry in entries %}
+        <div class="border-b last:border-0 px-4 py-3 grid grid-cols-12 gap-2 items-center {% if entry.user.id == session.user_id %}bg-blue-50{% endif %}">
+            <div class="col-span-1 text-center">
+                {% if entry.rank == 1 %}
+                <span class="text-2xl">🥇</span>
+                {% elif entry.rank == 2 %}
+                <span class="text-2xl">🥈</span>
+                {% elif entry.rank == 3 %}
+                <span class="text-2xl">🥉</span>
+                {% else %}
+                <span class="text-gray-500">{{ entry.rank }}</span>
+                {% endif %}
+            </div>
+            <div class="col-span-4 font-medium">
+                {{ entry.user.name }}
+                {% if entry.user.id == session.user_id %}
+                <span class="text-xs text-blue-600">(Du)</span>
+                {% endif %}
+            </div>
+            <div class="col-span-2 text-center text-green-600 font-semibold">
+                {{ entry.exact_predictions }}
+            </div>
+            <div class="col-span-2 text-center text-blue-600 font-semibold">
+                {{ entry.correct_diffs }}
+            </div>
+            <div class="col-span-2 text-center text-yellow-600 font-semibold">
+                {{ entry.correct_winners }}
+            </div>
+            <div class="col-span-1 text-right font-bold text-lg {% if entry.total_points > 0 %}text-green-700{% else %}text-gray-400{% endif %}">
+                {{ entry.total_points }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Legend -->
+    <div class="mt-6 bg-gray-50 rounded-lg p-4 text-sm">
+        <h3 class="font-semibold mb-2">Punktesystem:</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <div class="flex items-center">
+                <span class="text-green-600 font-bold mr-2">5 Punkte:</span>
+                <span>Exaktes Ergebnis</span>
+            </div>
+            <div class="flex items-center">
+                <span class="text-blue-600 font-bold mr-2">3 Punkte:</span>
+                <span>Richtige Tordifferenz</span>
+            </div>
+            <div class="flex items-center">
+                <span class="text-yellow-600 font-bold mr-2">1 Punkt:</span>
+                <span>Richtiger Sieger</span>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <p class="text-center text-gray-500">Noch keine Daten verfügbar.</p>
+    {% endif %}
+</div>
+{% endblock %}

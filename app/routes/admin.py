@@ -128,30 +128,75 @@ def sync_apifootball():
 
 @admin_bp.route('/admin/edit-groups', methods=['GET', 'POST'])
 def edit_groups():
-    """Manually edit match groups"""
+    """Manually edit group assignments - team based"""
     from app.models import Match
+    from collections import defaultdict
     
     if request.method == 'POST':
-        match_id = request.form.get('match_id', type=int)
-        new_group = request.form.get('new_group', '').strip()
+        action = request.form.get('action', '')
         
-        if match_id and new_group:
-            match = Match.query.get(match_id)
-            if match:
-                match.round_name = new_group
+        if action == 'move_team':
+            # Move all matches for a team to a new group
+            team_name = request.form.get('team_name', '').strip()
+            new_group = request.form.get('new_group', '').strip()
+            
+            if team_name and new_group:
+                matches = Match.query.filter(
+                    db.or_(
+                        Match.team1_name == team_name,
+                        Match.team2_name == team_name
+                    )
+                ).all()
+                
+                for match in matches:
+                    if 'Gruppe' in match.round_name or match.round_name == 'Unknown':
+                        match.round_name = new_group
+                
                 db.session.commit()
-                flash(f'Spiel {match.team1_name} vs {match.team2_name} auf {new_group} geändert', 'success')
+                flash(f'Team {team_name} wurde nach {new_group} verschoben', 'success')
         
         return redirect(url_for('admin.edit_groups'))
     
     # Get all matches
-    matches = Match.query.order_by(Match.round_name, Match.match_date).all()
+    all_matches = Match.query.all()
     
-    # Get unique groups
-    groups = Match.query.with_entities(Match.round_name).distinct().all()
-    groups = [g[0] for g in groups]
+    # Extract all teams and their current groups
+    teams_data = defaultdict(lambda: {'group': 'Unknown', 'matches': []})
     
-    return render_template('admin/edit_groups.html', matches=matches, groups=groups)
+    for match in all_matches:
+        t1_name = match.team1_name
+        t2_name = match.team2_name
+        
+        # Track group info for each team
+        if 'Gruppe' in match.round_name:
+            teams_data[t1_name]['group'] = match.round_name
+            teams_data[t2_name]['group'] = match.round_name
+        
+        teams_data[t1_name]['matches'].append(match)
+        teams_data[t2_name]['matches'].append(match)
+    
+    # Group teams by their assigned group
+    groups = defaultdict(list)
+    unassigned = []
+    
+    for team_name, data in teams_data.items():
+        if 'Gruppe' in data['group']:
+            groups[data['group']].append(team_name)
+        else:
+            unassigned.append(team_name)
+    
+    # Get group matches for display
+    group_matches = {}
+    for group_name in ['Gruppe A', 'Gruppe B', 'Gruppe C', 'Gruppe D', 
+                       'Gruppe E', 'Gruppe F', 'Gruppe G', 'Gruppe H',
+                       'Gruppe I', 'Gruppe J', 'Gruppe K', 'Gruppe L']:
+        group_matches[group_name] = Match.query.filter_by(round_name=group_name).order_by(Match.match_date).all()
+    
+    return render_template('admin/edit_groups.html', 
+                          groups=dict(groups), 
+                          unassigned=unassigned,
+                          group_matches=group_matches,
+                          teams_data=dict(teams_data))
 
 @admin_bp.route('/admin/users/<int:user_id>/edit', methods=['GET', 'POST'])
 def edit_user(user_id):

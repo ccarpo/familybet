@@ -10,67 +10,74 @@
     {% if rounds %}
         {% set first_round = rounds.values()|first %}
         {% if first_round and not first_round[0].has_started() %}
+        {% set all_teams = {} %}
+        {% for round_matches in rounds.values() %}
+            {% for match in round_matches %}
+                {% if match.team1_name not in all_teams %}{% set _ = all_teams.update({match.team1_name: match.team1_id}) %}{% endif %}
+                {% if match.team2_name not in all_teams %}{% set _ = all_teams.update({match.team2_name: match.team2_id}) %}{% endif %}
+            {% endfor %}
+        {% endfor %}
+        {% set sorted_teams = all_teams.items()|sort %}
+        
         <div id="tournament-bet" class="bg-yellow-50 border border-yellow-300 rounded-lg p-4">
             <h2 class="text-lg font-bold mb-3">🏆 Turniertipp abgeben</h2>
             <p class="text-sm text-gray-600 mb-3">Tippe vor Turnierbeginn den Weltmeister und die anderen 3 Halbfinalisten.</p>
             
             <form method="POST" action="{{ url_for('bets.place_tournament_bet') }}" class="space-y-3">
+                <datalist id="teams-list">
+                    {% for name, id in sorted_teams %}
+                    <option value="{{ name }}" data-id="{{ id }}">{{ name }}</option>
+                    {% endfor %}
+                </datalist>
+                
                 <div>
                     <label class="block text-sm font-medium mb-1">Weltmeister</label>
-                    <select name="winner_team_id" required class="w-full border rounded px-3 py-2" onchange="document.getElementById('winner_name').value = this.options[this.selectedIndex].text">
-                        <option value="">Wählen...</option>
-                        {% for round_matches in rounds.values() %}
-                            {% for match in round_matches %}
-                                <option value="{{ match.team1_id }}">{{ match.team1_name }}</option>
-                                <option value="{{ match.team2_id }}">{{ match.team2_name }}</option>
-                            {% endfor %}
-                        {% endfor %}
-                    </select>
+                    <input type="text" name="winner_team_name" list="teams-list" required 
+                           class="w-full border rounded px-3 py-2" placeholder="Team tippen oder wählen..."
+                           onchange="updateTeamId(this, 'winner_team_id')">
+                    <input type="hidden" name="winner_team_id" id="winner_team_id">
                 </div>
                 
                 <div class="grid grid-cols-3 gap-2">
                     <div>
                         <label class="block text-sm font-medium mb-1">Halbfinalist 1</label>
-                        <select name="semifinalist1_id" required class="w-full border rounded px-2 py-2 text-sm" onchange="document.getElementById('sf1_name').value = this.options[this.selectedIndex].text">
-                            <option value="">...</option>
-                            {% for round_matches in rounds.values() %}
-                                {% for match in round_matches %}
-                                    <option value="{{ match.team1_id }}">{{ match.team1_name }}</option>
-                                    <option value="{{ match.team2_id }}">{{ match.team2_name }}</option>
-                                {% endfor %}
-                            {% endfor %}
-                        </select>
+                        <input type="text" name="semifinalist1_name" list="teams-list" required 
+                               class="w-full border rounded px-2 py-2 text-sm" placeholder="Team..."
+                               onchange="updateTeamId(this, 'sf1_id')">
+                        <input type="hidden" name="semifinalist1_id" id="sf1_id">
                     </div>
                     <div>
                         <label class="block text-sm font-medium mb-1">Halbfinalist 2</label>
-                        <select name="semifinalist2_id" required class="w-full border rounded px-2 py-2 text-sm" onchange="document.getElementById('sf2_name').value = this.options[this.selectedIndex].text">
-                            <option value="">...</option>
-                            {% for round_matches in rounds.values() %}
-                                {% for match in round_matches %}
-                                    <option value="{{ match.team1_id }}">{{ match.team1_name }}</option>
-                                    <option value="{{ match.team2_id }}">{{ match.team2_name }}</option>
-                                {% endfor %}
-                            {% endfor %}
-                        </select>
+                        <input type="text" name="semifinalist2_name" list="teams-list" required 
+                               class="w-full border rounded px-2 py-2 text-sm" placeholder="Team..."
+                               onchange="updateTeamId(this, 'sf2_id')">
+                        <input type="hidden" name="semifinalist2_id" id="sf2_id">
                     </div>
                     <div>
                         <label class="block text-sm font-medium mb-1">Halbfinalist 3</label>
-                        <select name="semifinalist3_id" required class="w-full border rounded px-2 py-2 text-sm" onchange="document.getElementById('sf3_name').value = this.options[this.selectedIndex].text">
-                            <option value="">...</option>
-                            {% for round_matches in rounds.values() %}
-                                {% for match in round_matches %}
-                                    <option value="{{ match.team1_id }}">{{ match.team1_name }}</option>
-                                    <option value="{{ match.team2_id }}">{{ match.team2_name }}</option>
-                                {% endfor %}
-                            {% endfor %}
-                        </select>
+                        <input type="text" name="semifinalist3_name" list="teams-list" required 
+                               class="w-full border rounded px-2 py-2 text-sm" placeholder="Team..."
+                               onchange="updateTeamId(this, 'sf3_id')">
+                        <input type="hidden" name="semifinalist3_id" id="sf3_id">
                     </div>
                 </div>
                 
-                <input type="hidden" name="winner_team_name" id="winner_name">
-                <input type="hidden" name="semifinalist1_name" id="sf1_name">
-                <input type="hidden" name="semifinalist2_name" id="sf2_name">
-                <input type="hidden" name="semifinalist3_name" id="sf3_name">
+                <script>
+                function updateTeamId(input, hiddenId) {
+                    const datalist = document.getElementById('teams-list');
+                    const options = datalist.getElementsByTagName('option');
+                    const hiddenInput = document.getElementById(hiddenId);
+                    
+                    for (let option of options) {
+                        if (option.value === input.value) {
+                            hiddenInput.value = option.getAttribute('data-id');
+                            return;
+                        }
+                    }
+                    // If not found in datalist, clear hidden input
+                    hiddenInput.value = '';
+                }
+                </script>
                 
                 <button type="submit" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">
                     Turniertipp speichern

@@ -94,6 +94,14 @@ def place_tournament_bet():
     semifinalist3_id = request.form.get('semifinalist3_id', type=int)
     semifinalist3_name = request.form.get('semifinalist3_name', '').strip()
     
+    # Get target user (admin can bet on behalf of others)
+    on_behalf_of = request.form.get('on_behalf_of', type=int)
+    target_user_id = user.id
+    if is_admin() and on_behalf_of:
+        target_user = User.query.get(on_behalf_of)
+        if target_user:
+            target_user_id = target_user.id
+    
     # Validate all teams are selected
     if not winner_team_id or not semifinalist1_id or not semifinalist2_id or not semifinalist3_id:
         flash('Bitte alle 4 Teams auswählen', 'error')
@@ -110,14 +118,14 @@ def place_tournament_bet():
         flash('Bitte 3 unterschiedliche Halbfinalisten wählen', 'error')
         return redirect(url_for('main.dashboard'))
     
-    # Check if tournament has already started
+    # Check if tournament has already started (unless admin)
     first_match = Match.query.order_by(Match.match_date).first()
     if first_match and first_match.has_started() and not is_admin():
         flash('Turnier hat bereits begonnen - Tipp nicht mehr möglich', 'error')
         return redirect(url_for('main.dashboard'))
     
-    # Check if bet already exists
-    existing_bet = TournamentBet.query.filter_by(user_id=user.id).first()
+    # Check if bet already exists for target user
+    existing_bet = TournamentBet.query.filter_by(user_id=target_user_id).first()
     
     if existing_bet:
         # Update existing bet
@@ -134,7 +142,7 @@ def place_tournament_bet():
     else:
         # Create new bet
         new_bet = TournamentBet(
-            user_id=user.id,
+            user_id=target_user_id,
             winner_team_id=winner_team_id,
             winner_team_name=winner_team_name,
             semifinalist1_id=semifinalist1_id,
@@ -148,4 +156,9 @@ def place_tournament_bet():
         flash('Turniertipp abgegeben!', 'success')
     
     db.session.commit()
+    
+    # If admin was betting for someone else, redirect back to admin page
+    if is_admin() and on_behalf_of and on_behalf_of != user.id:
+        return redirect(url_for('admin.user_bets', user_id=on_behalf_of))
+    
     return redirect(url_for('main.dashboard'))

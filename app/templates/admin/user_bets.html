@@ -2,8 +2,10 @@
 
 {% block title %}Tipps verwalten - {{ target_user.name }} - FamilyBet{% endblock %}
 
+{% set group_colors = {'Gruppe A': 'bg-red-100 text-red-800', 'Gruppe B': 'bg-orange-100 text-orange-800', 'Gruppe C': 'bg-yellow-100 text-yellow-800', 'Gruppe D': 'bg-green-100 text-green-800', 'Gruppe E': 'bg-teal-100 text-teal-800', 'Gruppe F': 'bg-blue-100 text-blue-800', 'Gruppe G': 'bg-indigo-100 text-indigo-800', 'Gruppe H': 'bg-purple-100 text-purple-800', 'Gruppe I': 'bg-pink-100 text-pink-800', 'Gruppe J': 'bg-rose-100 text-rose-800', 'Gruppe K': 'bg-cyan-100 text-cyan-800', 'Gruppe L': 'bg-emerald-100 text-emerald-800'} %}
+
 {% block content %}
-<div class="space-y-6">
+<div class="space-y-4">
     <div class="flex items-center justify-between">
         <h1 class="text-2xl font-bold">🎯 Tipps für {{ target_user.name }}</h1>
         <a href="{{ url_for('admin.index') }}" class="text-blue-600 hover:underline">← Zurück zu Admin</a>
@@ -12,87 +14,159 @@
     <!-- Tournament Bet -->
     {% set tournament_bet = target_user.tournament_bet %}
     <div class="bg-white rounded-lg shadow-md p-4">
-        <h2 class="text-lg font-bold mb-3">🏆 Turniertipp</h2>
+        <h2 class="text-lg font-bold mb-3">🏆 Turniertipp (10P Weltmeister, 5P je Halbfinalist)</h2>
         
         {% if tournament_bet %}
-        <div class="space-y-2">
-            <div class="flex justify-between">
+        <div class="mb-4 p-3 bg-gray-50 rounded">
+            <div class="flex justify-between mb-1">
                 <span class="text-gray-600">Weltmeister:</span>
                 <span class="font-semibold text-green-600">{{ tournament_bet.winner_team_name }}</span>
             </div>
-            <div class="flex justify-between">
+            <div class="flex justify-between mb-1">
                 <span class="text-gray-600">Halbfinalisten:</span>
                 <span>{{ tournament_bet.semifinalist1_name }}, {{ tournament_bet.semifinalist2_name }}, {{ tournament_bet.semifinalist3_name }}</span>
             </div>
             {% if tournament_bet.points_earned %}
-            <div class="pt-2 border-t">
+            <div class="pt-2 border-t mt-2">
                 <span class="font-bold text-green-600">{{ tournament_bet.points_earned }} Punkte</span>
             </div>
             {% endif %}
         </div>
-        {% else %}
-        <p class="text-gray-500">Kein Turniertipp abgegeben.</p>
         {% endif %}
+        
+        <!-- Admin Tournament Bet Form -->
+        <form method="POST" action="{{ url_for('bets.place_tournament_bet') }}" class="space-y-3">
+            <input type="hidden" name="on_behalf_of" value="{{ target_user.id }}">
+            
+            <div>
+                <label class="block text-sm font-medium mb-1">Weltmeister (10P)</label>
+                <select name="winner_team_id" required class="w-full border rounded px-3 py-2" onchange="document.getElementById('winner_name').value = this.options[this.selectedIndex].text">
+                    <option value="">Wählen...</option>
+                    {% for match in matches %}
+                        <option value="{{ match.team1_id }}" {% if tournament_bet and tournament_bet.winner_team_id == match.team1_id %}selected{% endif %}>{{ match.team1_name }}</option>
+                        <option value="{{ match.team2_id }}" {% if tournament_bet and tournament_bet.winner_team_id == match.team2_id %}selected{% endif %}>{{ match.team2_name }}</option>
+                    {% endfor %}
+                </select>
+                <input type="hidden" name="winner_team_name" id="winner_name" value="{% if tournament_bet %}{{ tournament_bet.winner_team_name }}{% endif %}">
+            </div>
+            
+            <div class="grid grid-cols-3 gap-2">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Halbfinalist 1 (5P)</label>
+                    <select name="semifinalist1_id" required class="w-full border rounded px-2 py-2 text-sm" onchange="updateSFName(this, 'sf1_name')">
+                        <option value="">...</option>
+                        {% for match in matches %}
+                            <option value="{{ match.team1_id }}" {% if tournament_bet and tournament_bet.semifinalist1_id == match.team1_id %}selected{% endif %}>{{ match.team1_name }}</option>
+                            <option value="{{ match.team2_id }}" {% if tournament_bet and tournament_bet.semifinalist1_id == match.team2_id %}selected{% endif %}>{{ match.team2_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="hidden" name="semifinalist1_name" id="sf1_name" value="{% if tournament_bet %}{{ tournament_bet.semifinalist1_name }}{% endif %}">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Halbfinalist 2 (5P)</label>
+                    <select name="semifinalist2_id" required class="w-full border rounded px-2 py-2 text-sm" onchange="updateSFName(this, 'sf2_name')">
+                        <option value="">...</option>
+                        {% for match in matches %}
+                            <option value="{{ match.team1_id }}" {% if tournament_bet and tournament_bet.semifinalist2_id == match.team1_id %}selected{% endif %}>{{ match.team1_name }}</option>
+                            <option value="{{ match.team2_id }}" {% if tournament_bet and tournament_bet.semifinalist2_id == match.team2_id %}selected{% endif %}>{{ match.team2_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="hidden" name="semifinalist2_name" id="sf2_name" value="{% if tournament_bet %}{{ tournament_bet.semifinalist2_name }}{% endif %}">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Halbfinalist 3 (5P)</label>
+                    <select name="semifinalist3_id" required class="w-full border rounded px-2 py-2 text-sm" onchange="updateSFName(this, 'sf3_name')">
+                        <option value="">...</option>
+                        {% for match in matches %}
+                            <option value="{{ match.team1_id }}" {% if tournament_bet and tournament_bet.semifinalist3_id == match.team1_id %}selected{% endif %}>{{ match.team1_name }}</option>
+                            <option value="{{ match.team2_id }}" {% if tournament_bet and tournament_bet.semifinalist3_id == match.team2_id %}selected{% endif %}>{{ match.team2_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="hidden" name="semifinalist3_name" id="sf3_name" value="{% if tournament_bet %}{{ tournament_bet.semifinalist3_name }}{% endif %}">
+                </div>
+            </div>
+            
+            <button type="submit" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">
+                {% if tournament_bet %}Turniertipp aktualisieren{% else %}Turniertipp speichern{% endif %}
+            </button>
+        </form>
+        
+        <script>
+        function updateSFName(select, hiddenId) {
+            document.getElementById(hiddenId).value = select.options[select.selectedIndex].text;
+        }
+        </script>
     </div>
 
     <!-- Match Bets -->
     <div class="bg-white rounded-lg shadow-md p-4">
         <h2 class="text-lg font-bold mb-3">⚽ Spieltipps</h2>
         
-        <div class="space-y-4">
+        <div class="space-y-1">
             {% for match in matches %}
             {% set bet = user_bets.get(match.id) %}
-            <div class="border rounded-lg p-3 {% if match.is_finished %}bg-gray-50{% endif %}">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs text-gray-500">{{ match.round_name }}</span>
-                    <span class="text-xs text-gray-500">{{ match.match_date.strftime('%d.%m. %H:%M') }}</span>
+            {% set group_class = group_colors.get(match.round_name, 'bg-gray-100 text-gray-800') %}
+            
+            <div class="flex items-center gap-2 p-2 rounded border text-sm {% if match.is_finished %}bg-gray-50{% endif %}">
+                <!-- Group Badge (for group phase) -->
+                {% if 'Gruppe' in match.round_name %}
+                <span class="px-2 py-0.5 rounded text-xs font-bold whitespace-nowrap {{ group_class }}">
+                    {{ match.round_name|replace('Gruppe ', '') }}
+                </span>
+                {% else %}
+                <span class="px-2 py-0.5 rounded text-xs font-bold whitespace-nowrap bg-purple-100 text-purple-800">
+                    {{ match.round_name|truncate(4, true, '') }}
+                </span>
+                {% endif %}
+                
+                <!-- Teams -->
+                <div class="flex-1 flex items-center gap-2 min-w-0">
+                    <span class="font-medium truncate">{{ match.team1_name }}</span>
+                    <span class="text-gray-400">vs</span>
+                    <span class="font-medium truncate">{{ match.team2_name }}</span>
                 </div>
                 
-                <div class="flex items-center justify-between">
-                    <div class="flex-1">
-                        <div class="font-medium">{{ match.team1_name }}</div>
-                        <div class="font-medium">{{ match.team2_name }}</div>
-                    </div>
-                    
+                <!-- Result (if finished) -->
+                {% if match.is_finished %}
+                <span class="font-bold text-lg">{{ match.team1_score }}:{{ match.team2_score }}</span>
+                {% endif %}
+                
+                <!-- Bet Info -->
+                {% if bet %}
+                <div class="flex items-center gap-1 text-xs">
+                    <span class="text-blue-600">{{ bet.team1_score_pred }}:{{ bet.team2_score_pred }}</span>
                     {% if match.is_finished %}
-                    <div class="text-center px-4">
-                        <div class="font-bold">{{ match.team1_score }} : {{ match.team2_score }}</div>
-                    </div>
-                    {% endif %}
-                    
-                    <div class="w-48">
-                        {% if bet %}
-                        <div class="flex items-center justify-between">
-                            <span class="text-sm">Tipp: {{ bet.team1_score_pred }}:{{ bet.team2_score_pred }}</span>
-                            {% if match.is_finished %}
-                            <span class="font-bold {% if bet.points_earned > 0 %}text-green-600{% else %}text-red-500{% endif %}">
-                                {{ bet.points_earned }}P
-                            </span>
-                            {% endif %}
-                        </div>
+                        {% if bet.points_earned > 0 %}
+                        <span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold">+{{ bet.points_earned }}P</span>
                         {% else %}
-                        <span class="text-sm text-gray-400">Kein Tipp</span>
+                        <span class="bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold">0P</span>
                         {% endif %}
-                        
-                        <!-- Admin Bet Form -->
-                        <form method="POST" action="{{ url_for('bets.place_bet') }}" class="mt-2 flex items-center space-x-2">
-                            <input type="hidden" name="match_id" value="{{ match.id }}">
-                            <input type="hidden" name="on_behalf_of" value="{{ target_user.id }}">
-                            
-                            <input type="number" name="team1_score" min="0" required
-                                   value="{% if bet %}{{ bet.team1_score_pred }}{% else %}0{% endif %}"
-                                   class="w-14 text-center border rounded py-1 text-sm">
-                            <span class="text-gray-400">:</span>
-                            <input type="number" name="team2_score" min="0" required
-                                   value="{% if bet %}{{ bet.team2_score_pred }}{% else %}0{% endif %}"
-                                   class="w-14 text-center border rounded py-1 text-sm">
-                            
-                            <button type="submit" class="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700">
-                                {% if bet %}✓{% else %}+{% endif %}
-                            </button>
-                        </form>
-                    </div>
+                    {% endif %}
                 </div>
+                {% endif %}
+                
+                <!-- Admin Quick Bet Form -->
+                <form method="POST" action="{{ url_for('bets.place_bet') }}" class="flex items-center gap-1">
+                    <input type="hidden" name="match_id" value="{{ match.id }}">
+                    <input type="hidden" name="on_behalf_of" value="{{ target_user.id }}">
+                    
+                    <input type="number" name="team1_score" min="0" required
+                           value="{% if bet %}{{ bet.team1_score_pred }}{% endif %}"
+                           class="w-10 text-center text-sm border rounded py-0.5 focus:ring-1 focus:ring-blue-500"
+                           placeholder="-" tabindex="1">
+                    <span class="text-gray-400">:</span>
+                    <input type="number" name="team2_score" min="0" required
+                           value="{% if bet %}{{ bet.team2_score_pred }}{% endif %}"
+                           class="w-10 text-center text-sm border rounded py-0.5 focus:ring-1 focus:ring-blue-500"
+                           placeholder="-" tabindex="1">
+                    
+                    <button type="submit" class="text-xs bg-blue-600 text-white px-2 py-0.5 rounded hover:bg-blue-700 ml-1">
+                        {% if bet %}✓{% else %}+{% endif %}
+                    </button>
+                </form>
+                
+                <!-- Time -->
+                <span class="text-xs text-gray-500 whitespace-nowrap">{{ match.match_date.strftime('%d.%m %H:%M') }}</span>
             </div>
             {% endfor %}
         </div>

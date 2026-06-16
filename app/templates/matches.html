@@ -91,8 +91,7 @@
                 {% if 'Gruppe' in round_name %}
                     {% for match in matches %}
                     {% set group_class = group_colors.get(round_name, 'bg-gray-100 text-gray-800') %}
-                    <a href="{{ url_for('main.match_detail', match_id=match.id) }}" 
-                       class="match-card flex items-center gap-2 p-2 rounded border text-sm {% if match.is_finished %}bg-gray-50{% elif match.has_started() %}bg-yellow-50{% else %}bg-white{% endif %}">
+                    <div class="match-card flex items-center gap-2 p-2 rounded border text-sm {% if match.is_finished %}bg-gray-50{% elif match.has_started() %}bg-yellow-50{% else %}bg-white{% endif %}">
                         <!-- Group Badge -->
                         <span class="px-2 py-1 rounded text-xs font-bold whitespace-nowrap {{ group_class }}">
                             {{ round_name|replace('Gruppe ', '') }}
@@ -151,7 +150,7 @@
                         
                         <!-- Time -->
                         <span class="text-xs text-gray-500 whitespace-nowrap">{{ match.match_date.strftime('%d.%m %H:%M') }}</span>
-                    </a>
+                    </div>
                     {% endfor %}
                 {% endif %}
             {% endfor %}
@@ -166,8 +165,7 @@
             <h2 class="text-lg font-bold mb-2 text-blue-800">{{ round_name }}</h2>
             <div class="space-y-1">
                 {% for match in matches %}
-                <a href="{{ url_for('main.match_detail', match_id=match.id) }}" 
-                   class="match-card flex items-center gap-2 p-2 rounded border text-sm {% if match.is_finished %}bg-gray-50{% elif match.has_started() %}bg-yellow-50{% else %}bg-white{% endif %}">
+                <div class="match-card flex items-center gap-2 p-2 rounded border text-sm {% if match.is_finished %}bg-gray-50{% elif match.has_started() %}bg-yellow-50{% else %}bg-white{% endif %}">
                     <!-- Teams & Score -->
                     <div class="flex-1 flex items-center justify-between min-w-0">
                         <div class="flex items-center gap-2 truncate">
@@ -218,7 +216,7 @@
                     </div>
                     
                     <span class="text-xs text-gray-500 whitespace-nowrap">{{ match.match_date.strftime('%d.%m %H:%M') }}</span>
-                </a>
+                </div>
                 {% endfor %}
             </div>
         </div>

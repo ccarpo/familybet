@@ -12,7 +12,7 @@ def create_app():
     
     with app.app_context():
         # Import models to ensure they are registered
-        from app.models import User, Match, Bet, TournamentBet
+        from app.models import User, Match, Bet, TournamentBet, ScoringConfig
         
         # Create tables
         db.create_all()

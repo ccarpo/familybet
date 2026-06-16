@@ -15,7 +15,7 @@ RUN mkdir -p /app/data
 # Set environment variables
 ENV FLASK_APP=run.py
 ENV PYTHONUNBUFFERED=1
-ENV DATABASE_URL=sqlite:///data/familybet.db
+ENV DATABASE_URL=sqlite:////app/data/familybet.db
 ENV SECRET_KEY=change-me-in-production
 
 # Expose port

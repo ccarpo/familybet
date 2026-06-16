@@ -236,3 +236,11 @@ http://localhost:5000
 - [ ] Support for other leagues/tournaments
 - [ ] User profile pages with stats
 - [ ] Export results to PDF/Excel
+
+## TODO
+
+### Data Integration
+- [ ] **Dynamic Group Fetching**: Instead of hardcoded WM2026 groups, fetch group data dynamically from API-Football or OpenLigaDB. Current implementation uses hardcoded groups from official draw (Dec 1, 2025) in `app/services/wm2026_groups.py`. Future tournaments should auto-detect groups from API.
+
+### UI Improvements
+- [ ] **Batch Bet Saving**: Single save button for all match bets (both user and admin pages) instead of per-match forms

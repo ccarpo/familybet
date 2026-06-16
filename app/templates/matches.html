@@ -89,6 +89,9 @@
 
 {% set group_colors = {'Gruppe A': 'bg-red-100 text-red-800', 'Gruppe B': 'bg-orange-100 text-orange-800', 'Gruppe C': 'bg-yellow-100 text-yellow-800', 'Gruppe D': 'bg-green-100 text-green-800', 'Gruppe E': 'bg-teal-100 text-teal-800', 'Gruppe F': 'bg-blue-100 text-blue-800', 'Gruppe G': 'bg-indigo-100 text-indigo-800', 'Gruppe H': 'bg-purple-100 text-purple-800', 'Gruppe I': 'bg-pink-100 text-pink-800', 'Gruppe J': 'bg-rose-100 text-rose-800', 'Gruppe K': 'bg-cyan-100 text-cyan-800', 'Gruppe L': 'bg-emerald-100 text-emerald-800'} %}
 
+    <!-- Batch Bet Form -->
+    <form method="POST" action="{{ url_for('bets.place_batch_bets') }}" id="batch-bets-form">
+    
     <!-- Group Phase Matches -->
     {% if 'Gruppe' in rounds.keys()|join(' ') %}
     <div class="bg-white rounded-lg shadow-md p-3 mb-4">
@@ -135,22 +138,17 @@
                                     {% endif %}
                                 {% elif not match.has_started() %}
                                     {% set my_bet = my_bets.get(match.id) %}
-                                    <form class="inline-bet-form flex items-center gap-1"
-                                          hx-post="{{ url_for('bets.place_bet') }}" hx-swap="none">
-                                        <input type="hidden" name="match_id" value="{{ match.id }}">
-                                        <input type="number" name="team1_score" min="0" required
+                                    <div class="flex items-center gap-1">
+                                        <input type="number" name="bet_match_{{ match.id }}_team1" min="0"
                                                value="{% if my_bet %}{{ my_bet.team1_score_pred }}{% endif %}"
                                                class="w-10 text-center text-sm border rounded py-0.5 focus:ring-1 focus:ring-blue-500"
-                                               placeholder="-"
-                                               onchange="this.closest('form').dispatchEvent(new Event('submit'))">
+                                               placeholder="-">
                                         <span class="text-gray-400">:</span>
-                                        <input type="number" name="team2_score" min="0" required
+                                        <input type="number" name="bet_match_{{ match.id }}_team2" min="0"
                                                value="{% if my_bet %}{{ my_bet.team2_score_pred }}{% endif %}"
                                                class="w-10 text-center text-sm border rounded py-0.5 focus:ring-1 focus:ring-blue-500"
-                                               placeholder="-"
-                                               onchange="this.closest('form').dispatchEvent(new Event('submit'))">
-                                        <span class="save-indicator text-xs opacity-0 transition-opacity"></span>
-                                    </form>
+                                               placeholder="-">
+                                    </div>
                                 {% endif %}
                             </div>
                         </div>
@@ -202,22 +200,17 @@
                                 {% endif %}
                             {% elif not match.has_started() %}
                                 {% set my_bet = my_bets.get(match.id) %}
-                                <form class="inline-bet-form flex items-center gap-1"
-                                      hx-post="{{ url_for('bets.place_bet') }}" hx-swap="none">
-                                    <input type="hidden" name="match_id" value="{{ match.id }}">
-                                    <input type="number" name="team1_score" min="0" required
+                                <div class="flex items-center gap-1">
+                                    <input type="number" name="bet_match_{{ match.id }}_team1" min="0"
                                            value="{% if my_bet %}{{ my_bet.team1_score_pred }}{% endif %}"
                                            class="w-10 text-center text-sm border rounded py-0.5 focus:ring-1 focus:ring-blue-500"
-                                           placeholder="-"
-                                           onchange="this.closest('form').dispatchEvent(new Event('submit'))">
+                                           placeholder="-">
                                     <span class="text-gray-400">:</span>
-                                    <input type="number" name="team2_score" min="0" required
+                                    <input type="number" name="bet_match_{{ match.id }}_team2" min="0"
                                            value="{% if my_bet %}{{ my_bet.team2_score_pred }}{% endif %}"
                                            class="w-10 text-center text-sm border rounded py-0.5 focus:ring-1 focus:ring-blue-500"
-                                           placeholder="-"
-                                           onchange="this.closest('form').dispatchEvent(new Event('submit'))">
-                                    <span class="save-indicator text-xs opacity-0 transition-opacity"></span>
-                                </form>
+                                           placeholder="-">
+                                </div>
                             {% endif %}
                         </div>
                     </div>
@@ -231,26 +224,22 @@
     {% endfor %}
 </div>
 
+<!-- Submit Button -->
+<div class="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-64 z-50">
+    <button type="submit" form="batch-bets-form" 
+            class="w-full bg-green-600 text-white py-3 px-6 rounded-lg shadow-lg hover:bg-green-700 font-bold text-lg">
+        💾 Alle Tipps speichern
+    </button>
+</div>
+
+</form>
+
 <script>
-// HTMX save feedback for inline bet forms
-document.addEventListener('htmx:afterRequest', function(evt) {
-    const form = evt.detail.elt;
-    if (form.classList.contains('inline-bet-form')) {
-        const indicator = form.querySelector('.save-indicator');
-        if (evt.detail.successful) {
-            indicator.textContent = '✓';
-            indicator.classList.add('text-green-600', 'opacity-100');
-            indicator.classList.remove('opacity-0', 'text-red-600');
-        } else {
-            indicator.textContent = '✗';
-            indicator.classList.add('text-red-600', 'opacity-100');
-            indicator.classList.remove('opacity-0', 'text-green-600');
-        }
-        setTimeout(() => {
-            indicator.classList.remove('opacity-100');
-            indicator.classList.add('opacity-0');
-        }, 1500);
-    }
+// Auto-save indicator (optional - can be removed if not needed)
+document.getElementById('batch-bets-form').addEventListener('submit', function() {
+    const btn = this.querySelector('button[type="submit"]');
+    btn.textContent = '💾 Speichern...';
+    btn.disabled = true;
 });
 </script>
 {% endblock %}

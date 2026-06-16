@@ -162,3 +162,91 @@ def place_tournament_bet():
         return redirect(url_for('admin.user_bets', user_id=on_behalf_of))
     
     return redirect(url_for('main.dashboard'))
+
+
+@bets_bp.route('/bets/batch', methods=['POST'])
+def place_batch_bets():
+    """Save multiple bets at once from a batch form"""
+    user = get_current_user()
+    if not user:
+        flash('Bitte einloggen', 'error')
+        return redirect(url_for('auth.login'))
+    
+    on_behalf_of = request.form.get('on_behalf_of', type=int)
+    
+    # Determine target user (admin can bet on behalf of others)
+    target_user_id = user.id
+    if is_admin() and on_behalf_of:
+        target_user = User.query.get(on_behalf_of)
+        if target_user:
+            target_user_id = target_user.id
+    
+    # Process all bet fields from the form
+    saved_count = 0
+    skipped_count = 0
+    
+    # Find all match bet fields (format: bet_match_<id>_team1 and bet_match_<id>_team2)
+    for key in request.form:
+        if key.startswith('bet_match_') and key.endswith('_team1'):
+            # Extract match_id from field name
+            parts = key.split('_')
+            if len(parts) >= 3:
+                try:
+                    match_id = int(parts[2])
+                    team1_score = request.form.get(f'bet_match_{match_id}_team1', type=int)
+                    team2_score = request.form.get(f'bet_match_{match_id}_team2', type=int)
+                    
+                    # Skip if either score is missing
+                    if team1_score is None or team2_score is None:
+                        continue
+                    
+                    # Validate scores
+                    if team1_score < 0 or team2_score < 0:
+                        continue
+                    
+                    match = Match.query.get(match_id)
+                    if not match:
+                        continue
+                    
+                    # Check if match has already started (unless admin)
+                    if not is_admin() and match.has_started():
+                        skipped_count += 1
+                        continue
+                    
+                    # Check for existing bet
+                    existing_bet = Bet.query.filter_by(
+                        user_id=target_user_id,
+                        match_id=match_id
+                    ).first()
+                    
+                    if existing_bet:
+                        existing_bet.team1_score_pred = team1_score
+                        existing_bet.team2_score_pred = team2_score
+                        existing_bet.created_at = datetime.utcnow()
+                    else:
+                        new_bet = Bet(
+                            user_id=target_user_id,
+                            match_id=match_id,
+                            team1_score_pred=team1_score,
+                            team2_score_pred=team2_score
+                        )
+                        db.session.add(new_bet)
+                    
+                    saved_count += 1
+                except (ValueError, IndexError):
+                    continue
+    
+    db.session.commit()
+    
+    if saved_count > 0:
+        flash(f'{saved_count} Tipps gespeichert!', 'success')
+    if skipped_count > 0:
+        flash(f'{skipped_count} Spiele übersprungen (bereits begonnen)', 'warning')
+    if saved_count == 0 and skipped_count == 0:
+        flash('Keine Tipps zum Speichern', 'info')
+    
+    # Redirect back appropriately
+    if is_admin() and on_behalf_of and on_behalf_of != user.id:
+        return redirect(url_for('admin.user_bets', user_id=on_behalf_of))
+    
+    return redirect(url_for('main.matches'))

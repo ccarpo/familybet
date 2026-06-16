@@ -102,6 +102,9 @@
     <div class="bg-white rounded-lg shadow-md p-4">
         <h2 class="text-lg font-bold mb-3">⚽ Spieltipps</h2>
         
+        <form method="POST" action="{{ url_for('bets.place_batch_bets') }}" id="admin-batch-bets-form">
+        <input type="hidden" name="on_behalf_of" value="{{ target_user.id }}">
+        
         <div class="space-y-1">
             {% for match in matches %}
             {% set bet = user_bets.get(match.id) %}
@@ -145,31 +148,32 @@
                 </div>
                 {% endif %}
                 
-                <!-- Admin Quick Bet Form -->
-                <form method="POST" action="{{ url_for('bets.place_bet') }}" class="flex items-center gap-1">
-                    <input type="hidden" name="match_id" value="{{ match.id }}">
-                    <input type="hidden" name="on_behalf_of" value="{{ target_user.id }}">
-                    
-                    <input type="number" name="team1_score" min="0" required
+                <!-- Admin Batch Bet Inputs -->
+                <div class="flex items-center gap-1">
+                    <input type="number" name="bet_match_{{ match.id }}_team1" min="0"
                            value="{% if bet %}{{ bet.team1_score_pred }}{% endif %}"
                            class="w-10 text-center text-sm border rounded py-0.5 focus:ring-1 focus:ring-blue-500"
-                           placeholder="-" tabindex="1">
+                           placeholder="-">
                     <span class="text-gray-400">:</span>
-                    <input type="number" name="team2_score" min="0" required
+                    <input type="number" name="bet_match_{{ match.id }}_team2" min="0"
                            value="{% if bet %}{{ bet.team2_score_pred }}{% endif %}"
                            class="w-10 text-center text-sm border rounded py-0.5 focus:ring-1 focus:ring-blue-500"
-                           placeholder="-" tabindex="1">
-                    
-                    <button type="submit" class="text-xs bg-blue-600 text-white px-2 py-0.5 rounded hover:bg-blue-700 ml-1">
-                        {% if bet %}✓{% else %}+{% endif %}
-                    </button>
-                </form>
+                           placeholder="-">
+                </div>
                 
                 <!-- Time -->
                 <span class="text-xs text-gray-500 whitespace-nowrap">{{ match.match_date.strftime('%d.%m %H:%M') }}</span>
             </div>
             {% endfor %}
         </div>
+        
+        <!-- Submit Button -->
+        <div class="mt-4">
+            <button type="submit" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 font-bold">
+                💾 Alle Tipps speichern
+            </button>
+        </div>
+        </form>
     </div>
 </div>
 {% endblock %}

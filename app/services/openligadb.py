@@ -81,6 +81,8 @@ class OpenLigaDBClient:
     
     def sync_matches(self, league_shortcut=None, season=None):
         """Sync matches from OpenLigaDB to local database"""
+        from app.services.wm2026_groups import get_team_group
+        
         shortcut = league_shortcut or self.league_shortcut
         s = season or self.season
         
@@ -114,12 +116,18 @@ class OpenLigaDBClient:
             team1_score, team2_score = self.parse_match_results(match_data)
             is_finished = match_data.get('matchIsFinished', False)
             
+            # Determine group from hardcoded WM2026 groups
+            team1_name = team1.get('teamName', '')
+            team2_name = team2.get('teamName', '')
+            round_name = get_team_group(team1_name) or get_team_group(team2_name) or 'Unknown'
+            
             if existing_match:
                 # Update existing match
                 existing_match.match_date = match_date
                 existing_match.team1_score = team1_score
                 existing_match.team2_score = team2_score
                 existing_match.is_finished = is_finished
+                existing_match.round_name = round_name
                 existing_match.last_updated = datetime.utcnow()
             else:
                 # Create new match
@@ -127,7 +135,7 @@ class OpenLigaDBClient:
                     match_id=match_id,
                     league_shortcut=shortcut,
                     league_season=s,
-                    round_name=group.get('groupName', 'Unknown'),
+                    round_name=round_name,
                     group_order_id=group.get('groupOrderID', 0),
                     team1_id=team1.get('teamId', 0),
                     team1_name=team1.get('teamName', 'Unknown'),

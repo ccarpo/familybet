@@ -99,6 +99,18 @@ def add_user():
     flash(f'Benutzer {name} erstellt', 'success')
     return redirect(url_for('admin.index'))
 
+@admin_bp.route('/admin/assign-groups', methods=['POST'])
+def assign_groups():
+    """Assign hardcoded WM2026 groups to all matches"""
+    try:
+        from app.services.wm2026_groups import assign_groups_to_matches
+        count = assign_groups_to_matches()
+        flash(f'{count} Spiele wurden den korrekten WM2026 Gruppen zugeordnet', 'success')
+    except Exception as e:
+        flash(f'Fehler bei Gruppenzuordnung: {str(e)}', 'error')
+    
+    return redirect(url_for('admin.check_data'))
+
 @admin_bp.route('/admin/check-data')
 def check_data():
     """Check OpenLigaDB data and groups"""
@@ -148,12 +160,15 @@ def edit_groups():
                     )
                 ).all()
                 
+                updated_count = 0
                 for match in matches:
-                    if 'Gruppe' in match.round_name or match.round_name == 'Unknown':
+                    # Update all group stage matches for this team
+                    if 'Gruppe' in match.round_name or match.round_name == 'Unknown' or match.round_name == new_group:
                         match.round_name = new_group
+                        updated_count += 1
                 
                 db.session.commit()
-                flash(f'Team {team_name} wurde nach {new_group} verschoben', 'success')
+                flash(f'Team {team_name} wurde nach {new_group} verschoben ({updated_count} Spiele aktualisiert)', 'success')
         
         return redirect(url_for('admin.edit_groups'))
     

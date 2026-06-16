@@ -99,6 +99,60 @@ def add_user():
     flash(f'Benutzer {name} erstellt', 'success')
     return redirect(url_for('admin.index'))
 
+@admin_bp.route('/admin/check-data')
+def check_data():
+    """Check OpenLigaDB data and groups"""
+    # Get all matches grouped by round
+    from app.models import Match
+    matches = Match.query.order_by(Match.match_date).all()
+    
+    rounds = {}
+    for match in matches:
+        if match.round_name not in rounds:
+            rounds[match.round_name] = []
+        rounds[match.round_name].append(match)
+    
+    return render_template('admin/check_data.html', rounds=rounds)
+
+@admin_bp.route('/admin/sync-apifootball', methods=['POST'])
+def sync_apifootball():
+    """Sync matches from API-Football (100 req/day limit)"""
+    try:
+        from app.services.apifootball import sync_matches_from_apifootball
+        count = sync_matches_from_apifootball()
+        flash(f'{count} Spiele von API-Football synchronisiert (mit Caching)', 'success')
+    except Exception as e:
+        flash(f'Fehler bei API-Football Sync: {str(e)}', 'error')
+    
+    return redirect(url_for('admin.index'))
+
+@admin_bp.route('/admin/edit-groups', methods=['GET', 'POST'])
+def edit_groups():
+    """Manually edit match groups"""
+    from app.models import Match
+    
+    if request.method == 'POST':
+        match_id = request.form.get('match_id', type=int)
+        new_group = request.form.get('new_group', '').strip()
+        
+        if match_id and new_group:
+            match = Match.query.get(match_id)
+            if match:
+                match.round_name = new_group
+                db.session.commit()
+                flash(f'Spiel {match.team1_name} vs {match.team2_name} auf {new_group} geändert', 'success')
+        
+        return redirect(url_for('admin.edit_groups'))
+    
+    # Get all matches
+    matches = Match.query.order_by(Match.round_name, Match.match_date).all()
+    
+    # Get unique groups
+    groups = Match.query.with_entities(Match.round_name).distinct().all()
+    groups = [g[0] for g in groups]
+    
+    return render_template('admin/edit_groups.html', matches=matches, groups=groups)
+
 @admin_bp.route('/admin/users/<int:user_id>/edit', methods=['GET', 'POST'])
 def edit_user(user_id):
     target_user = User.query.get_or_404(user_id)

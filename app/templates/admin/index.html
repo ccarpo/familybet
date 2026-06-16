@@ -48,6 +48,20 @@
                     Turnierpunkte berechnen
                 </button>
             </form>
+            
+            <form method="POST" action="{{ url_for('admin.sync_apifootball') }}" class="inline">
+                <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+                    Gruppen korrigieren (API-Football)
+                </button>
+            </form>
+            
+            <a href="{{ url_for('admin.check_data') }}" class="inline-block bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+                Daten prüfen
+            </a>
+            
+            <a href="{{ url_for('admin.edit_groups') }}" class="inline-block bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700">
+                Gruppen bearbeiten
+            </a>
         </div>
     </div>
 

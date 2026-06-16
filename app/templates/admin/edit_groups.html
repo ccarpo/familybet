@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Gruppen bearbeiten - FamilyBet{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold">📝 Gruppen manuell bearbeiten</h1>
+        <a href="{{ url_for('admin.check_data') }}" class="text-blue-600 hover:underline">← Zurück zu Daten prüfen</a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md p-4">
+        <h2 class="text-lg font-bold mb-3">Alle Spiele</h2>
+        <p class="text-sm text-gray-600 mb-4">
+            Aktuelle Gruppen: {{ groups|join(', ') }}
+        </p>
+        
+        <div class="space-y-2">
+            {% for match in matches %}
+            <div class="flex items-center gap-4 p-2 border rounded {% if 'Gruppe' in match.round_name %}bg-blue-50{% endif %}">
+                <span class="text-sm text-gray-500 w-24">{{ match.round_name }}</span>
+                <span class="flex-1">{{ match.team1_name }} vs {{ match.team2_name }}</span>
+                <span class="text-xs text-gray-400">{{ match.match_date.strftime('%d.%m.%Y %H:%M') }}</span>
+                
+                <form method="POST" action="{{ url_for('admin.edit_groups') }}" class="flex items-center gap-2">
+                    <input type="hidden" name="match_id" value="{{ match.id }}">
+                    <select name="new_group" class="border rounded px-2 py-1 text-sm">
+                        <option value="">Gruppe wählen...</option>
+                        {% for g in ['Gruppe A', 'Gruppe B', 'Gruppe C', 'Gruppe D', 'Gruppe E', 'Gruppe F', 
+                                     'Gruppe G', 'Gruppe H', 'Gruppe I', 'Gruppe J', 'Gruppe K', 'Gruppe L',
+                                     'Achtelfinale', 'Viertelfinale', 'Halbfinale', 'Spiel um Platz 3', 'Finale'] %}
+                        <option value="{{ g }}" {% if match.round_name == g %}selected{% endif %}>{{ g }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">
+                        Ändern
+                    </button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

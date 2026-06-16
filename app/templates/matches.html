@@ -14,33 +14,15 @@
             <h2 class="text-lg font-bold mb-3">🏆 Turniertipp abgeben</h2>
             <p class="text-sm text-gray-600 mb-3">Tippe vor Turnierbeginn den Weltmeister und die anderen 3 Halbfinalisten.</p>
             
-            {% set all_teams = [] %}
-            {% for round_matches in rounds.values() %}
-                {% for match in round_matches %}
-                    {% if match.team1_id not in all_teams %}
-                        {% set _ = all_teams.append(match.team1_id) %}
-                    {% endif %}
-                    {% if match.team2_id not in all_teams %}
-                        {% set _ = all_teams.append(match.team2_id) %}
-                    {% endif %}
-                {% endfor %}
-            {% endfor %}
-            
             <form method="POST" action="{{ url_for('bets.place_tournament_bet') }}" class="space-y-3">
                 <div>
                     <label class="block text-sm font-medium mb-1">Weltmeister</label>
-                    <select name="winner_team_id" required class="w-full border rounded px-3 py-2">
+                    <select name="winner_team_id" required class="w-full border rounded px-3 py-2" onchange="document.getElementById('winner_name').value = this.options[this.selectedIndex].text">
                         <option value="">Wählen...</option>
                         {% for round_matches in rounds.values() %}
                             {% for match in round_matches %}
-                                {% if match.team1_id not in all_teams %}
-                                    <option value="{{ match.team1_id }}" data-name="{{ match.team1_name }}">{{ match.team1_name }}</option>
-                                {% endif %}
-                                {% if match.team2_id not in all_teams %}
-                                    <option value="{{ match.team2_id }}" data-name="{{ match.team2_name }}">{{ match.team2_name }}</option>
-                                {% endif %}
-                                {% if match.team1_id not in all_teams %}{% set _ = all_teams.append(match.team1_id) %}{% endif %}
-                                {% if match.team2_id not in all_teams %}{% set _ = all_teams.append(match.team2_id) %}{% endif %}
+                                <option value="{{ match.team1_id }}">{{ match.team1_name }}</option>
+                                <option value="{{ match.team2_id }}">{{ match.team2_name }}</option>
                             {% endfor %}
                         {% endfor %}
                     </select>
@@ -49,20 +31,38 @@
                 <div class="grid grid-cols-3 gap-2">
                     <div>
                         <label class="block text-sm font-medium mb-1">Halbfinalist 1</label>
-                        <select name="semifinalist1_id" required class="w-full border rounded px-2 py-2 text-sm">
+                        <select name="semifinalist1_id" required class="w-full border rounded px-2 py-2 text-sm" onchange="document.getElementById('sf1_name').value = this.options[this.selectedIndex].text">
                             <option value="">...</option>
+                            {% for round_matches in rounds.values() %}
+                                {% for match in round_matches %}
+                                    <option value="{{ match.team1_id }}">{{ match.team1_name }}</option>
+                                    <option value="{{ match.team2_id }}">{{ match.team2_name }}</option>
+                                {% endfor %}
+                            {% endfor %}
                         </select>
                     </div>
                     <div>
                         <label class="block text-sm font-medium mb-1">Halbfinalist 2</label>
-                        <select name="semifinalist2_id" required class="w-full border rounded px-2 py-2 text-sm">
+                        <select name="semifinalist2_id" required class="w-full border rounded px-2 py-2 text-sm" onchange="document.getElementById('sf2_name').value = this.options[this.selectedIndex].text">
                             <option value="">...</option>
+                            {% for round_matches in rounds.values() %}
+                                {% for match in round_matches %}
+                                    <option value="{{ match.team1_id }}">{{ match.team1_name }}</option>
+                                    <option value="{{ match.team2_id }}">{{ match.team2_name }}</option>
+                                {% endfor %}
+                            {% endfor %}
                         </select>
                     </div>
                     <div>
                         <label class="block text-sm font-medium mb-1">Halbfinalist 3</label>
-                        <select name="semifinalist3_id" required class="w-full border rounded px-2 py-2 text-sm">
+                        <select name="semifinalist3_id" required class="w-full border rounded px-2 py-2 text-sm" onchange="document.getElementById('sf3_name').value = this.options[this.selectedIndex].text">
                             <option value="">...</option>
+                            {% for round_matches in rounds.values() %}
+                                {% for match in round_matches %}
+                                    <option value="{{ match.team1_id }}">{{ match.team1_name }}</option>
+                                    <option value="{{ match.team2_id }}">{{ match.team2_name }}</option>
+                                {% endfor %}
+                            {% endfor %}
                         </select>
                     </div>
                 </div>
@@ -128,20 +128,20 @@
                                     {% endif %}
                                 {% elif not match.has_started() %}
                                     {% set my_bet = my_bets.get(match.id) %}
-                                    <form class="inline-bet-form flex items-center gap-1" 
-                                          hx-post="{{ url_for('bets.place_bet') }}" hx-swap="none" hx-trigger="change delay:300ms">
+                                    <form class="inline-bet-form flex items-center gap-1"
+                                          hx-post="{{ url_for('bets.place_bet') }}" hx-swap="none">
                                         <input type="hidden" name="match_id" value="{{ match.id }}">
-                                        <input type="number" name="team1_score" min="0" required 
+                                        <input type="number" name="team1_score" min="0" required
                                                value="{% if my_bet %}{{ my_bet.team1_score_pred }}{% endif %}"
                                                class="w-10 text-center text-sm border rounded py-0.5 focus:ring-1 focus:ring-blue-500"
-                                               placeholder="-" tabindex="1"
-                                               hx-trigger="blur, change delay:200ms">
+                                               placeholder="-"
+                                               onchange="this.closest('form').dispatchEvent(new Event('submit'))">
                                         <span class="text-gray-400">:</span>
-                                        <input type="number" name="team2_score" min="0" required 
+                                        <input type="number" name="team2_score" min="0" required
                                                value="{% if my_bet %}{{ my_bet.team2_score_pred }}{% endif %}"
                                                class="w-10 text-center text-sm border rounded py-0.5 focus:ring-1 focus:ring-blue-500"
-                                               placeholder="-" tabindex="1"
-                                               hx-trigger="blur, change delay:200ms">
+                                               placeholder="-"
+                                               onchange="this.closest('form').dispatchEvent(new Event('submit'))">
                                         <span class="save-indicator text-xs opacity-0 transition-opacity"></span>
                                     </form>
                                 {% endif %}
@@ -195,20 +195,20 @@
                                 {% endif %}
                             {% elif not match.has_started() %}
                                 {% set my_bet = my_bets.get(match.id) %}
-                                <form class="inline-bet-form flex items-center gap-1" 
-                                      hx-post="{{ url_for('bets.place_bet') }}" hx-swap="none" hx-trigger="change delay:300ms">
+                                <form class="inline-bet-form flex items-center gap-1"
+                                      hx-post="{{ url_for('bets.place_bet') }}" hx-swap="none">
                                     <input type="hidden" name="match_id" value="{{ match.id }}">
-                                    <input type="number" name="team1_score" min="0" required 
+                                    <input type="number" name="team1_score" min="0" required
                                            value="{% if my_bet %}{{ my_bet.team1_score_pred }}{% endif %}"
                                            class="w-10 text-center text-sm border rounded py-0.5 focus:ring-1 focus:ring-blue-500"
-                                           placeholder="-" tabindex="1"
-                                           hx-trigger="blur, change delay:200ms">
+                                           placeholder="-"
+                                           onchange="this.closest('form').dispatchEvent(new Event('submit'))">
                                     <span class="text-gray-400">:</span>
-                                    <input type="number" name="team2_score" min="0" required 
+                                    <input type="number" name="team2_score" min="0" required
                                            value="{% if my_bet %}{{ my_bet.team2_score_pred }}{% endif %}"
                                            class="w-10 text-center text-sm border rounded py-0.5 focus:ring-1 focus:ring-blue-500"
-                                           placeholder="-" tabindex="1"
-                                           hx-trigger="blur, change delay:200ms">
+                                           placeholder="-"
+                                           onchange="this.closest('form').dispatchEvent(new Event('submit'))">
                                     <span class="save-indicator text-xs opacity-0 transition-opacity"></span>
                                 </form>
                             {% endif %}
@@ -243,14 +243,6 @@ document.addEventListener('htmx:afterRequest', function(evt) {
             indicator.classList.remove('opacity-100');
             indicator.classList.add('opacity-0');
         }, 1500);
-    }
-});
-
-// Auto-advance to next input on Tab
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Tab' && e.target.tagName === 'INPUT' && e.target.type === 'number') {
-        // Let default tab behavior happen, but the blur will trigger save
-        e.target.blur(); // Trigger save on current field
     }
 });
 </script>

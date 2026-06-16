@@ -14,6 +14,10 @@ class Config:
     WORLD_CUP_LEAGUE_SHORTCUT = 'wm2026'
     WORLD_CUP_SEASON = 2026
     
+    # API-Football settings (alternative data source)
+    API_FOOTBALL_KEY = os.environ.get('API_FOOTBALL_KEY') or '0a3cfd728bcef1bd81edc7998a0c5373'
+    API_FOOTBALL_LEAGUE_ID = 1  # FIFA World Cup
+    
     # Scheduler settings
     SYNC_INTERVAL_HOURS = 24
     

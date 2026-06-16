@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Daten prüfen - FamilyBet{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold">🔍 OpenLigaDB Daten prüfen</h1>
+        <a href="{{ url_for('admin.index') }}" class="text-blue-600 hover:underline">← Zurück zu Admin</a>
+    </div>
+
+    <!-- Groups Overview -->
+    <div class="bg-white rounded-lg shadow-md p-4">
+        <h2 class="text-lg font-bold mb-3">Gruppen aus der Datenbank</h2>
+        
+        {% for round_name, matches in rounds.items() %}
+        <div class="mb-4 border rounded p-3">
+            <h3 class="font-bold text-blue-800 mb-2">{{ round_name }} ({{ matches|length }} Spiele)</h3>
+            <div class="grid grid-cols-2 gap-2 text-sm">
+                {% for match in matches %}
+                <div class="flex items-center gap-2">
+                    <span class="text-gray-500">{{ match.team1_name }}</span>
+                    <span class="text-gray-400">vs</span>
+                    <span class="text-gray-500">{{ match.team2_name }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Raw API Test -->
+    <div class="bg-white rounded-lg shadow-md p-4">
+        <h2 class="text-lg font-bold mb-3">API Test</h2>
+        <p class="text-sm text-gray-600 mb-3">
+            Zeigt die ersten 5 Spiele aus der OpenLigaDB API mit ihren Gruppeninformationen.
+        </p>
+        <a href="{{ url_for('api.test_api') }}" target="_blank" class="text-blue-600 hover:underline text-sm">
+            API-Daten anzeigen (neuer Tab)
+        </a>
+    </div>
+
+    <!-- Manual Group Assignment -->
+    <div class="bg-white rounded-lg shadow-md p-4">
+        <h2 class="text-lg font-bold mb-3">Manuelle Gruppenzuordnung</h2>
+        <p class="text-sm text-gray-600 mb-3">
+            Wenn die API falsche oder fehlende Gruppen hat, können Sie hier korrigieren.
+        </p>
+        <a href="{{ url_for('admin.edit_groups') }}" class="inline-block bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700">
+            Gruppen bearbeiten
+        </a>
+    </div>
+</div>
+{% endblock %}

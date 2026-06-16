@@ -123,22 +123,26 @@ class Bet(db.Model):
         if actual_team1_score is None or actual_team2_score is None:
             return 0
         
+        # Get current scoring config
+        from app.models import ScoringConfig
+        config = ScoringConfig.get_current()
+        
         pred_diff = self.team1_score_pred - self.team2_score_pred
         actual_diff = actual_team1_score - actual_team2_score
         
-        # Exact match: 5 points
+        # Exact match
         if self.team1_score_pred == actual_team1_score and self.team2_score_pred == actual_team2_score:
-            return 5
+            return config.points_exact
         
-        # Correct goal difference: 3 points
+        # Correct goal difference
         if pred_diff == actual_diff:
-            return 3
+            return config.points_diff
         
-        # Correct winner/draw: 1 point
+        # Correct winner/draw
         pred_winner = 0 if pred_diff == 0 else (1 if pred_diff > 0 else -1)
         actual_winner = 0 if actual_diff == 0 else (1 if actual_diff > 0 else -1)
         if pred_winner == actual_winner:
-            return 1
+            return config.points_winner
         
         return 0
     
@@ -173,3 +177,56 @@ class TournamentBet(db.Model):
     
     def __repr__(self):
         return f'<TournamentBet {self.user.name}: Winner={self.winner_team_name}>'
+
+
+class ScoringConfig(db.Model):
+    """Configurable scoring system for match bets"""
+    __tablename__ = 'scoring_config'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # Points for each prediction type
+    points_exact = db.Column(db.Integer, default=3)    # Exact score prediction
+    points_diff = db.Column(db.Integer, default=2)     # Correct goal difference
+    points_winner = db.Column(db.Integer, default=1)    # Correct winner/draw
+    
+    # Metadata
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    @staticmethod
+    def get_current():
+        """Get the current active scoring config, or create default if none exists"""
+        config = ScoringConfig.query.filter_by(is_active=True).first()
+        if not config:
+            # Create default config
+            config = ScoringConfig(
+                points_exact=3,
+                points_diff=2,
+                points_winner=1,
+                is_active=True
+            )
+            db.session.add(config)
+            db.session.commit()
+        return config
+    
+    @staticmethod
+    def create_new(points_exact, points_diff, points_winner):
+        """Create a new scoring config and deactivate old ones"""
+        # Deactivate all existing configs
+        ScoringConfig.query.update({'is_active': False})
+        
+        # Create new active config
+        new_config = ScoringConfig(
+            points_exact=points_exact,
+            points_diff=points_diff,
+            points_winner=points_winner,
+            is_active=True
+        )
+        db.session.add(new_config)
+        db.session.commit()
+        return new_config
+    
+    def __repr__(self):
+        return f'<ScoringConfig Exact={self.points_exact}, Diff={self.points_diff}, Winner={self.points_winner}>'

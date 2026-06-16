@@ -59,7 +59,8 @@
         </div>
         {% endif %}
         
-        <form method="POST" action="{{ url_for('bets.place_bet') }}">
+        <form id="bet-form-{{ match.id }}" method="POST" action="{{ url_for('bets.place_bet') }}" 
+              hx-post="{{ url_for('bets.place_bet') }}" hx-swap="none" hx-trigger="change delay:500ms">
             <input type="hidden" name="match_id" value="{{ match.id }}">
             
             <div class="flex items-center justify-center space-x-4 mb-4">
@@ -67,7 +68,8 @@
                     <label class="block text-sm text-gray-600 mb-1">{{ match.team1_name }}</label>
                     <input type="number" name="team1_score" min="0" required 
                            value="{% if my_bet %}{{ my_bet.team1_score_pred }}{% else %}0{% endif %}"
-                           class="w-16 text-center text-xl border rounded-lg py-2">
+                           class="w-16 text-center text-xl border rounded-lg py-2 focus:ring-2 focus:ring-blue-500"
+                           hx-trigger="blur, change delay:300ms">
                 </div>
                 
                 <div class="text-2xl font-bold text-gray-400">:</div>
@@ -76,14 +78,33 @@
                     <label class="block text-sm text-gray-600 mb-1">{{ match.team2_name }}</label>
                     <input type="number" name="team2_score" min="0" required 
                            value="{% if my_bet %}{{ my_bet.team2_score_pred }}{% else %}0{% endif %}"
-                           class="w-16 text-center text-xl border rounded-lg py-2">
+                           class="w-16 text-center text-xl border rounded-lg py-2 focus:ring-2 focus:ring-blue-500"
+                           hx-trigger="blur, change delay:300ms">
                 </div>
             </div>
             
-            <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">
-                {% if my_bet %}Tipp aktualisieren{% else %}Tipp abgeben{% endif %}
-            </button>
+            <div id="save-indicator-{{ match.id }}" class="text-center text-sm text-green-600 h-6"></div>
+            
+            <noscript>
+                <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">
+                    {% if my_bet %}Tipp aktualisieren{% else %}Tipp abgeben{% endif %}
+                </button>
+            </noscript>
         </form>
+
+        <script>
+        document.getElementById('bet-form-{{ match.id }}').addEventListener('htmx:afterRequest', function(evt) {
+            const indicator = document.getElementById('save-indicator-{{ match.id }}');
+            if (evt.detail.successful) {
+                indicator.textContent = '✓ Gespeichert';
+                indicator.className = 'text-center text-sm text-green-600 h-6';
+            } else {
+                indicator.textContent = '✗ Fehler beim Speichern';
+                indicator.className = 'text-center text-sm text-red-600 h-6';
+            }
+            setTimeout(() => { indicator.textContent = ''; }, 2000);
+        });
+        </script>
     </div>
     {% endif %}
 
@@ -99,20 +120,20 @@
             
             {% if match.is_finished %}
             <div class="mt-3">
-                {% if my_bet.points_earned == 5 %}
+                {% if my_bet.team1_score_pred == match.team1_score and my_bet.team2_score_pred == match.team2_score %}
                 <div class="bg-green-100 text-green-800 rounded-lg p-3">
                     <div class="font-bold text-lg">🎯 Exakter Treffer!</div>
-                    <div class="text-2xl font-bold">5 Punkte</div>
+                    <div class="text-2xl font-bold">{{ scoring_config.points_exact }} Punkte</div>
                 </div>
-                {% elif my_bet.points_earned == 3 %}
+                {% elif my_bet.points_earned == scoring_config.points_diff %}
                 <div class="bg-blue-100 text-blue-800 rounded-lg p-3">
                     <div class="font-bold text-lg">📊 Richtige Tordifferenz</div>
-                    <div class="text-2xl font-bold">3 Punkte</div>
+                    <div class="text-2xl font-bold">{{ scoring_config.points_diff }} Punkte</div>
                 </div>
-                {% elif my_bet.points_earned == 1 %}
+                {% elif my_bet.points_earned == scoring_config.points_winner %}
                 <div class="bg-yellow-100 text-yellow-800 rounded-lg p-3">
                     <div class="font-bold text-lg">✓ Richtiger Sieger</div>
-                    <div class="text-2xl font-bold">1 Punkt</div>
+                    <div class="text-2xl font-bold">{{ scoring_config.points_winner }} Punkt</div>
                 </div>
                 {% else %}
                 <div class="bg-red-100 text-red-800 rounded-lg p-3">

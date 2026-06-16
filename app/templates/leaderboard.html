@@ -12,9 +12,9 @@
         <div class="bg-gray-50 border-b px-4 py-3 grid grid-cols-12 gap-2 text-sm font-semibold text-gray-600">
             <div class="col-span-1 text-center">Platz</div>
             <div class="col-span-4">Name</div>
-            <div class="col-span-2 text-center">🎯 5P</div>
-            <div class="col-span-2 text-center">📊 3P</div>
-            <div class="col-span-2 text-center">✓ 1P</div>
+            <div class="col-span-2 text-center">🎯 {{ scoring_config.points_exact }}P</div>
+            <div class="col-span-2 text-center">📊 {{ scoring_config.points_diff }}P</div>
+            <div class="col-span-2 text-center">✓ {{ scoring_config.points_winner }}P</div>
             <div class="col-span-1 text-right">Gesamt</div>
         </div>
 
@@ -59,15 +59,15 @@
         <h3 class="font-semibold mb-2">Punktesystem:</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div class="flex items-center">
-                <span class="text-green-600 font-bold mr-2">5 Punkte:</span>
+                <span class="text-green-600 font-bold mr-2">{{ scoring_config.points_exact }} Punkte:</span>
                 <span>Exaktes Ergebnis</span>
             </div>
             <div class="flex items-center">
-                <span class="text-blue-600 font-bold mr-2">3 Punkte:</span>
+                <span class="text-blue-600 font-bold mr-2">{{ scoring_config.points_diff }} Punkte:</span>
                 <span>Richtige Tordifferenz</span>
             </div>
             <div class="flex items-center">
-                <span class="text-yellow-600 font-bold mr-2">1 Punkt:</span>
+                <span class="text-yellow-600 font-bold mr-2">{{ scoring_config.points_winner }} Punkt:</span>
                 <span>Richtiger Sieger</span>
             </div>
         </div>

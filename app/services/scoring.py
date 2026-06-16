@@ -50,12 +50,26 @@ class ScoringService:
     @staticmethod
     def get_user_stats(user_id):
         """Get detailed stats for a user"""
+        from app.models import ScoringConfig
         bets = Bet.query.filter_by(user_id=user_id).all()
+        config = ScoringConfig.get_current()
         
         total_points = sum(bet.points_earned or 0 for bet in bets)
-        exact_predictions = sum(1 for bet in bets if bet.points_earned == 5)
-        correct_diffs = sum(1 for bet in bets if bet.points_earned == 3)
-        correct_winners = sum(1 for bet in bets if bet.points_earned == 1)
+        
+        # Count by matching the config values
+        exact_predictions = sum(1 for bet in bets 
+            if bet.match and bet.match.is_finished 
+            and bet.team1_score_pred == bet.match.team1_score 
+            and bet.team2_score_pred == bet.match.team2_score)
+        
+        correct_diffs = sum(1 for bet in bets 
+            if bet.match and bet.match.is_finished 
+            and (bet.team1_score_pred - bet.team2_score_pred) == (bet.match.team1_score - bet.match.team2_score)
+            and not (bet.team1_score_pred == bet.match.team1_score and bet.team2_score_pred == bet.match.team2_score))
+        
+        correct_winners = sum(1 for bet in bets 
+            if bet.match and bet.match.is_finished 
+            and bet.points_earned == config.points_winner)
         
         # Add tournament bet points
         tournament_bet = TournamentBet.query.filter_by(user_id=user_id).first()

@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
-from app.models import User, Match, Bet
+from app.models import User, Match, Bet, ScoringConfig
 from app import db
 from app.services.scheduler import trigger_manual_sync
 from app.services.scoring import ScoringService
@@ -35,6 +35,9 @@ def index():
     # Get all users
     users = User.query.all()
     
+    # Get current scoring config
+    scoring_config = ScoringConfig.get_current()
+    
     return render_template('admin/index.html',
                           user=user,
                           stats={
@@ -43,7 +46,34 @@ def index():
                               'finished_matches': finished_matches,
                               'total_bets': total_bets
                           },
-                          users=users)
+                          users=users,
+                          scoring_config=scoring_config)
+
+@admin_bp.route('/admin/scoring', methods=['POST'])
+def update_scoring():
+    try:
+        points_exact = int(request.form.get('points_exact', 3))
+        points_diff = int(request.form.get('points_diff', 2))
+        points_winner = int(request.form.get('points_winner', 1))
+        
+        # Validate inputs
+        if points_exact < 0 or points_diff < 0 or points_winner < 0:
+            flash('Punkte können nicht negativ sein', 'error')
+            return redirect(url_for('admin.index'))
+        
+        # Create new config
+        ScoringConfig.create_new(points_exact, points_diff, points_winner)
+        
+        # Recalculate all points with new config
+        ScoringService.recalculate_all_match_points()
+        
+        flash(f'Punktesystem aktualisiert: Exakt={points_exact}, Diff={points_diff}, Sieger={points_winner}. Alle Punkte wurden neu berechnet.', 'success')
+    except ValueError:
+        flash('Bitte gültige Zahlen eingeben', 'error')
+    except Exception as e:
+        flash(f'Aktualisierung fehlgeschlagen: {str(e)}', 'error')
+    
+    return redirect(url_for('admin.index'))
 
 @admin_bp.route('/admin/users', methods=['POST'])
 def add_user():
@@ -68,6 +98,36 @@ def add_user():
     
     flash(f'Benutzer {name} erstellt', 'success')
     return redirect(url_for('admin.index'))
+
+@admin_bp.route('/admin/users/<int:user_id>/edit', methods=['GET', 'POST'])
+def edit_user(user_id):
+    target_user = User.query.get_or_404(user_id)
+    
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        is_admin_user = request.form.get('is_admin') == 'on'
+        
+        if not name:
+            flash('Name ist erforderlich', 'error')
+            return render_template('admin/edit_user.html', target_user=target_user)
+        
+        # Check if email is already used by another user
+        if email:
+            existing = User.query.filter(User.email == email, User.id != user_id).first()
+            if existing:
+                flash('Email wird bereits verwendet', 'error')
+                return render_template('admin/edit_user.html', target_user=target_user)
+        
+        target_user.name = name
+        target_user.email = email
+        target_user.is_admin = is_admin_user
+        db.session.commit()
+        
+        flash(f'Benutzer {name} aktualisiert', 'success')
+        return redirect(url_for('admin.index'))
+    
+    return render_template('admin/edit_user.html', target_user=target_user)
 
 @admin_bp.route('/admin/users/<int:user_id>')
 def user_bets(user_id):

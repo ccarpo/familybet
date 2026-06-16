@@ -1,6 +1,6 @@
-from flask import Blueprint, render_template, session, redirect, url_for, flash
+from flask import Blueprint, render_template, session, redirect, url_for, flash, request
 from datetime import datetime
-from app.models import User, Match, Bet, TournamentBet
+from app.models import User, Match, Bet, TournamentBet, ScoringConfig
 from app.services.scoring import ScoringService
 
 main_bp = Blueprint('main', __name__)
@@ -95,12 +95,16 @@ def match_detail(match_id):
     if match.is_finished:
         all_bets = Bet.query.filter_by(match_id=match_id).join(User).all()
     
+    # Get current scoring config
+    scoring_config = ScoringConfig.get_current()
+    
     return render_template('match_detail.html',
                           match=match,
                           my_bet=my_bet,
                           all_bets=all_bets,
                           now=datetime.utcnow(),
-                          user=user)
+                          user=user,
+                          scoring_config=scoring_config)
 
 @main_bp.route('/leaderboard')
 def leaderboard():
@@ -109,9 +113,44 @@ def leaderboard():
         return redirect(url_for('auth.login'))
     
     entries = ScoringService.get_leaderboard()
+    scoring_config = ScoringConfig.get_current()
     
     return render_template('leaderboard.html',
                           entries=entries,
-                          user=user)
+                          user=user,
+                          scoring_config=scoring_config)
+
+@main_bp.route('/profile', methods=['GET', 'POST'])
+def profile():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('auth.login'))
+    
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        
+        if not name:
+            flash('Name ist erforderlich', 'error')
+            return render_template('profile.html', user=user)
+        
+        # Check if email is already used by another user
+        if email:
+            existing = User.query.filter(User.email == email, User.id != user.id).first()
+            if existing:
+                flash('Email wird bereits verwendet', 'error')
+                return render_template('profile.html', user=user)
+        
+        user.name = name
+        user.email = email
+        db.session.commit()
+        
+        # Update session
+        session['user_name'] = user.name
+        
+        flash('Profil aktualisiert', 'success')
+        return redirect(url_for('main.profile'))
+    
+    return render_template('profile.html', user=user)
 
 from flask import request

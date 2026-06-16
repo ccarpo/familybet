@@ -39,11 +39,13 @@ FamilyBet is a web application that allows family members to place bets on FIFA 
 - [x] Tournament bets close when first match starts
 - [x] Winner cannot be one of the other 3 semifinalists (validation)
 
-### 6. Scoring System (5-3-1)
-- [x] **5 points**: Exact score prediction (e.g., predicted 3:1, result 3:1)
-- [x] **3 points**: Correct goal difference (e.g., predicted 3:1, result 2:0 → both +2)
-- [x] **1 point**: Correct winner/draw (e.g., predicted 2:1, result 1:0)
+### 6. Scoring System (Configurable, Default 3-2-1)
+- [x] **Configurable**: Admin can change point values via UI
+- [x] **3 points**: Exact score prediction (default)
+- [x] **2 points**: Correct goal difference (default)
+- [x] **1 point**: Correct winner/draw (default)
 - [x] **0 points**: Wrong prediction
+- [x] **Auto-recalculate**: All historical points recalculated on change
 
 ### 7. Tournament Scoring
 - [x] **10 points**: Correct World Cup winner

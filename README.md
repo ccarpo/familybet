@@ -88,18 +88,22 @@ Open your browser to `http://localhost:5000`
 2. Add family member accounts
 3. Share login emails with family
 
-## Scoring System
+## Scoring System (Configurable)
 
-| Prediction | Points |
-|-----------|--------|
-| Exact score (e.g., 3:1 = 3:1) | 5 |
-| Correct goal diff (e.g., 3:1 vs 2:0) | 3 |
+Default scoring (can be changed in Admin panel):
+
+| Prediction | Default Points |
+|-----------|----------------|
+| Exact score (e.g., 3:1 = 3:1) | 3 |
+| Correct goal diff (e.g., 3:1 vs 2:0) | 2 |
 | Correct winner/draw | 1 |
 | Wrong | 0 |
 
 **Tournament Bonus:**
 - Correct World Cup winner: 10 points
 - Correct semifinalist: 5 points each
+
+**Admin can change scoring values anytime:** Go to Admin Panel → Punktesystem. Changes apply immediately and all historical points are recalculated.
 
 ## Project Structure
 

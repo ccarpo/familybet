@@ -290,7 +290,7 @@ def groups():
         return redirect(url_for('auth.login'))
 
     # Get all group matches
-    group_matches = Match.query.filter(Match.round_name.like('Gruppe%')).order_by(Match.match_date).all()
+    group_matches = Match.query.filter_by(round_type='group').order_by(Match.match_date).all()
 
     # Group by round_name
     groups_data = {}
@@ -399,11 +399,7 @@ def round_champion():
 
     # Get finale and 3rd place matches
     matches = Match.query.filter(
-        db.or_(
-            Match.round_name.like('%Finale%'),
-            Match.round_name.like('%Platz 3%'),
-            Match.round_name.like('%finale%')
-        )
+        Match.round_type.in_(['knockout', 'special'])
     ).order_by(Match.match_date).all()
 
     # Get user bets
@@ -451,7 +447,7 @@ def _show_ko_round(round_keyword, display_name):
 
 def _get_qualified_teams():
     """Calculate which teams have qualified from groups."""
-    group_matches = Match.query.filter(Match.round_name.like('Gruppe%')).all()
+    group_matches = Match.query.filter_by(round_type='group').all()
 
     groups_data = {}
     for match in group_matches:

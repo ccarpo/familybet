@@ -81,7 +81,7 @@ class OpenLigaDBClient:
     
     def sync_matches(self, league_shortcut=None, season=None):
         """Sync matches from OpenLigaDB to local database"""
-        from app.services.wm2026_groups import get_team_group
+        from app.models import Tournament, TournamentRound, TournamentTeam
         
         shortcut = league_shortcut or self.league_shortcut
         s = season or self.season
@@ -92,6 +92,17 @@ class OpenLigaDBClient:
         if not matches_data:
             print('No match data received from API')
             return 0
+        
+        # Get active tournament for round_type lookup
+        active_tournament = Tournament.get_active()
+        round_type_map = {}
+        if active_tournament:
+            rounds = TournamentRound.query.filter_by(tournament_id=active_tournament.id).all()
+            round_type_map = {r.name: r.round_type for r in rounds}
+            # Also add a lookup by partial match for flexibility
+            for r in rounds:
+                if 'Gruppe' in r.name:
+                    round_type_map[r.name.replace('Gruppe ', 'Gruppe')] = r.round_type
         
         synced_count = 0
         
@@ -116,10 +127,31 @@ class OpenLigaDBClient:
             team1_score, team2_score = self.parse_match_results(match_data)
             is_finished = match_data.get('matchIsFinished', False)
             
-            # Determine group from hardcoded WM2026 groups
+            # Determine round_name and round_type from tournament data
             team1_name = team1.get('teamName', '')
             team2_name = team2.get('teamName', '')
-            round_name = get_team_group(team1_name) or get_team_group(team2_name) or 'Unknown'
+            
+            # Try to find group from TournamentTeam
+            round_name = 'Unknown'
+            round_type = None
+            
+            if active_tournament:
+                # Look up team group assignments
+                team1_entry = TournamentTeam.query.filter_by(
+                    tournament_id=active_tournament.id,
+                    team_name=team1_name
+                ).first()
+                
+                if team1_entry and team1_entry.group:
+                    round_name = team1_entry.group.name
+                    round_type = round_type_map.get(round_name)
+            
+            # Fallback: use API group info if available
+            if round_name == 'Unknown' and group:
+                group_name = group.get('groupName', '')
+                if group_name:
+                    round_name = group_name
+                    round_type = round_type_map.get(round_name, 'group')
             
             if existing_match:
                 # Update existing match
@@ -128,6 +160,7 @@ class OpenLigaDBClient:
                 existing_match.team2_score = team2_score
                 existing_match.is_finished = is_finished
                 existing_match.round_name = round_name
+                existing_match.round_type = round_type
                 existing_match.last_updated = datetime.utcnow()
             else:
                 # Create new match
@@ -136,6 +169,7 @@ class OpenLigaDBClient:
                     league_shortcut=shortcut,
                     league_season=s,
                     round_name=round_name,
+                    round_type=round_type,
                     group_order_id=group.get('groupOrderID', 0),
                     team1_id=team1.get('teamId', 0),
                     team1_name=team1.get('teamName', 'Unknown'),

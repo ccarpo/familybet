@@ -51,6 +51,7 @@ class Match(db.Model):
     
     # Round/Group info
     round_name = db.Column(db.String(100), nullable=False)  # e.g., "Gruppe A", "Achtelfinale"
+    round_type = db.Column(db.String(20), nullable=True)   # 'group', 'knockout', 'special' (from TournamentRound)
     group_order_id = db.Column(db.Integer, nullable=False)  # OpenLigaDB group order
     
     # Teams
@@ -76,9 +77,13 @@ class Match(db.Model):
     # Relationships
     bets = db.relationship('Bet', backref='match', lazy=True, cascade='all, delete-orphan')
     
+    def is_group_match(self):
+        """Check if this is a group stage match."""
+        return self.round_type == 'group'
+    
     def is_knockout(self):
-        knockout_rounds = ['achtelfinale', 'viertelfinale', 'halbfinale', 'finale', 'spiel um platz 3']
-        return any(round_name in self.round_name.lower() for round_name in knockout_rounds)
+        """Check if this is a knockout stage match."""
+        return self.round_type == 'knockout' or self.round_type == 'special'
     
     def has_started(self):
         return datetime.utcnow() >= self.match_date

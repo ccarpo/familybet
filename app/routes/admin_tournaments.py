@@ -135,7 +135,7 @@ def deactivate_tournament(tournament_id):
 @admin_tournaments_bp.route('/admin/tournaments/<int:tournament_id>/delete', methods=['POST'])
 def delete_tournament(tournament_id):
     """Delete a tournament and all its data."""
-    from app.models import TournamentGroup, TournamentTeam, TournamentRound, Match
+    from app.models import TournamentGroup, TournamentTeam, TournamentRound, Match, ScoringConfig
     
     tournament = Tournament.query.get_or_404(tournament_id)
     name = tournament.name
@@ -144,6 +144,7 @@ def delete_tournament(tournament_id):
     TournamentGroup.query.filter_by(tournament_id=tournament_id).delete()
     TournamentTeam.query.filter_by(tournament_id=tournament_id).delete()
     TournamentRound.query.filter_by(tournament_id=tournament_id).delete()
+    ScoringConfig.query.filter_by(tournament_id=tournament_id).delete()
     
     # Delete matches
     league_shortcut = tournament.get_league_shortcut() or tournament.short_name
@@ -403,6 +404,7 @@ def edit_match(match_id):
     if request.method == 'POST':
         match_date_str = request.form.get('match_date')
         match_time_str = request.form.get('match_time')
+        location = request.form.get('location', '')
         
         try:
             if match_date_str:
@@ -414,6 +416,7 @@ def edit_match(match_id):
                     new_date = new_date.replace(hour=match.match_date.hour, minute=match.match_date.minute)
                 match.match_date = new_date
             
+            match.location = location
             db.session.commit()
             
             flash(f'Spiel aktualisiert: {match.team1_name} vs {match.team2_name}', 'success')

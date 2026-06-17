@@ -45,7 +45,7 @@
         {% else %}
         <p class="text-gray-500 text-sm">Noch kein Turniertipp abgegeben.</p>
         {% endif %}
-        
+
         {% if not upcoming_matches or not upcoming_matches[0].has_started() %}
         <a href="{{ url_for('main.matches') }}#tournament-bet" class="mt-3 inline-block text-blue-600 text-sm hover:underline">
             Turniertipp abgeben/ändern →
@@ -55,32 +55,154 @@
         {% endif %}
     </div>
 
-    <!-- Upcoming Matches -->
+    <!-- Current Ranking -->
     <div class="bg-white rounded-lg shadow-md p-4">
-        <div class="flex items-center justify-between mb-3">
-            <h2 class="text-lg font-bold">📅 Nächste Spiele</h2>
-            <a href="{{ url_for('main.matches') }}" class="text-blue-600 text-sm hover:underline">Alle →</a>
+        <h2 class="text-lg font-bold mb-3">📊 Aktuelle Rangliste</h2>
+        {% if leaderboard %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="text-center px-2 py-2 w-12">#</th>
+                        <th class="text-left px-3 py-2">Spieler</th>
+                        <th class="text-center px-2 py-2" title="Exakte Ergebnisse">🎯</th>
+                        <th class="text-center px-2 py-2" title="Richtige Differenzen">↔️</th>
+                        <th class="text-center px-2 py-2" title="Richtiger Sieger">✓</th>
+                        <th class="text-right px-3 py-2 font-bold">Punkte</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in leaderboard %}
+                    <tr class="border-b {% if entry.user.id == user.id %}bg-blue-50{% endif %}">
+                        <td class="text-center px-2 py-2 font-medium">{{ entry.rank }}</td>
+                        <td class="px-3 py-2">{{ entry.user.name }}</td>
+                        <td class="text-center px-2 py-2 text-gray-600">{{ entry.exact_predictions }}</td>
+                        <td class="text-center px-2 py-2 text-gray-600">{{ entry.correct_diffs }}</td>
+                        <td class="text-center px-2 py-2 text-gray-600">{{ entry.correct_winners }}</td>
+                        <td class="text-right px-3 py-2 font-bold text-blue-600">{{ entry.total_points }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-        
-        {% if upcoming_matches %}
-        <div class="space-y-2">
-            {% for match in upcoming_matches %}
-            <a href="{{ url_for('main.match_detail', match_id=match.id) }}" 
-               class="match-card block border rounded-lg p-3 hover:bg-gray-50">
-                <div class="flex items-center justify-between">
-                    <div class="flex-1">
+        {% else %}
+        <p class="text-gray-500 text-sm">Noch keine Spieler vorhanden.</p>
+        {% endif %}
+    </div>
+
+    <!-- Last 5 Games with All Bets -->
+    <div class="bg-white rounded-lg shadow-md p-4">
+        <h2 class="text-lg font-bold mb-3">🏁 Letzte 5 Spiele - Alle Tipps</h2>
+        {% if last_matches %}
+        <div class="space-y-4">
+            {% for match in last_matches %}
+            <div class="border rounded-lg p-3">
+                <!-- Match Header -->
+                <div class="flex items-center justify-between mb-2 pb-2 border-b">
+                    <div>
                         <div class="text-xs text-gray-500">{{ match.round_name }}</div>
-                        <div class="flex items-center justify-between mt-1">
-                            <span class="font-medium">{{ match.team1_name }}</span>
-                            <span class="text-gray-400 mx-2">vs</span>
-                            <span class="font-medium">{{ match.team2_name }}</span>
-                        </div>
+                        <div class="font-medium">{{ match.team1_name }} vs {{ match.team2_name }}</div>
                     </div>
-                    <div class="text-right text-xs text-gray-500 ml-3">
-                        {{ match.match_date.strftime('%d.%m. %H:%M') }}
+                    <div class="text-right">
+                        <div class="text-lg font-bold">{{ match.team1_score }}:{{ match.team2_score }}</div>
+                        <div class="text-xs text-gray-500">{{ match.match_date.strftime('%d.%m. %H:%M') }}</div>
                     </div>
                 </div>
-            </a>
+                <!-- All Bets Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th class="text-left px-2 py-1">Spieler</th>
+                                <th class="text-center px-2 py-1">Tipp</th>
+                                <th class="text-right px-2 py-1">Punkte</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in all_users %}
+                            {% set bet = all_bets[match.id][u.id] if all_bets[match.id] and all_bets[match.id][u.id] else None %}
+                            <tr class="border-b {% if u.id == user.id %}bg-blue-50{% endif %}">
+                                <td class="px-2 py-1">{{ u.name }}</td>
+                                <td class="text-center px-2 py-1">
+                                    {% if bet %}
+                                        {{ bet.team1_score_pred }}:{{ bet.team2_score_pred }}
+                                    {% else %}
+                                        <span class="text-gray-400">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-right px-2 py-1 font-semibold {% if bet and bet.points_earned > 0 %}text-green-600{% elif bet %}text-red-500{% endif %}">
+                                    {% if bet %}{{ bet.points_earned }}{% else %}-{% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-500 text-sm">Noch keine beendeten Spiele.</p>
+        {% endif %}
+    </div>
+
+    <!-- Next 5 Games with All Bets -->
+    <div class="bg-white rounded-lg shadow-md p-4">
+        <h2 class="text-lg font-bold mb-3">📅 Nächste 5 Spiele - Alle Tipps</h2>
+        {% if upcoming_matches %}
+        <div class="space-y-4">
+            {% for match in upcoming_matches %}
+            <div class="border rounded-lg p-3">
+                <!-- Match Header -->
+                <a href="{{ url_for('main.match_detail', match_id=match.id) }}" class="block hover:bg-gray-50">
+                    <div class="flex items-center justify-between mb-2 pb-2 border-b">
+                        <div>
+                            <div class="text-xs text-gray-500">{{ match.round_name }}</div>
+                            <div class="font-medium">{{ match.team1_name }} vs {{ match.team2_name }}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs text-gray-500">{{ match.match_date.strftime('%d.%m. %H:%M') }}</div>
+                            {% if match.has_started() %}
+                                <span class="text-xs text-red-500">Live</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </a>
+                <!-- All Bets Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th class="text-left px-2 py-1">Spieler</th>
+                                <th class="text-center px-2 py-1">Tipp</th>
+                                <th class="text-right px-2 py-1">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in all_users %}
+                            {% set bet = all_bets[match.id][u.id] if all_bets[match.id] and all_bets[match.id][u.id] else None %}
+                            <tr class="border-b {% if u.id == user.id %}bg-blue-50{% endif %}">
+                                <td class="px-2 py-1">{{ u.name }}</td>
+                                <td class="text-center px-2 py-1">
+                                    {% if bet %}
+                                        {{ bet.team1_score_pred }}:{{ bet.team2_score_pred }}
+                                    {% else %}
+                                        <span class="text-gray-400">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-right px-2 py-1">
+                                    {% if bet %}
+                                        <span class="text-green-600">✓ Getippt</span>
+                                    {% else %}
+                                        <span class="text-gray-400">Kein Tipp</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
             {% endfor %}
         </div>
         {% else %}
@@ -91,7 +213,7 @@
     <!-- Recent Bets -->
     <div class="bg-white rounded-lg shadow-md p-4">
         <h2 class="text-lg font-bold mb-3">🎯 Meine letzten Tipps</h2>
-        
+
         {% if my_bets %}
         <div class="space-y-2">
             {% for bet in my_bets %}

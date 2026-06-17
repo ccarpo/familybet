@@ -13,10 +13,14 @@ def create_app():
     with app.app_context():
         # Import models to ensure they are registered
         from app.models import User, Match, Bet, TournamentBet, ScoringConfig
-        
+
         # Create tables
         db.create_all()
-        
+
+        # Run automatic migrations
+        from app.services.migrations import check_and_run_migrations
+        check_and_run_migrations()
+
         # Register blueprints
         from app.routes.auth import auth_bp
         from app.routes.main import main_bp

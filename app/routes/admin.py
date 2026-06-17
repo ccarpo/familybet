@@ -162,8 +162,8 @@ def edit_groups():
                 
                 updated_count = 0
                 for match in matches:
-                    # Update all group stage matches for this team
-                    if 'Gruppe' in match.round_name or match.round_name == 'Unknown' or match.round_name == new_group:
+                    # Update all group stage matches for this team (only if not already in target group)
+                    if ('Gruppe' in match.round_name or match.round_name == 'Unknown') and match.round_name != new_group:
                         match.round_name = new_group
                         updated_count += 1
                 
@@ -247,18 +247,32 @@ def edit_user(user_id):
 def user_bets(user_id):
     user = get_current_user()
     target_user = User.query.get_or_404(user_id)
-    
+
     # Get all matches
     all_matches = Match.query.order_by(Match.match_date).all()
-    
+
     # Get user's bets
     user_bets = {bet.match_id: bet for bet in Bet.query.filter_by(user_id=user_id).all()}
-    
+
     return render_template('admin/user_bets.html',
                           user=user,
                           target_user=target_user,
                           matches=all_matches,
                           user_bets=user_bets)
+
+@admin_bp.route('/admin/users/<int:user_id>/toggle-visibility', methods=['POST'])
+def toggle_user_visibility(user_id):
+    """Toggle whether a user is hidden from the leaderboard/competition"""
+    target_user = User.query.get_or_404(user_id)
+
+    # Toggle the visibility status
+    target_user.is_hidden_from_leaderboard = not target_user.is_hidden_from_leaderboard
+    db.session.commit()
+
+    status = "ausgeblendet" if target_user.is_hidden_from_leaderboard else "wieder sichtbar"
+    flash(f'Benutzer {target_user.name} ist jetzt {status} in der Rangliste', 'success')
+
+    return redirect(url_for('admin.index'))
 
 @admin_bp.route('/admin/sync', methods=['POST'])
 def sync_matches():

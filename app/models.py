@@ -11,6 +11,7 @@ class User(db.Model):
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=True)
     is_admin = db.Column(db.Boolean, default=False)
+    is_hidden_from_leaderboard = db.Column(db.Boolean, default=False)
     magic_token = db.Column(db.String(64), unique=True, nullable=True)
     token_expires_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

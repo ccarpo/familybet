@@ -222,7 +222,7 @@ def place_batch_bets():
                     if existing_bet:
                         existing_bet.team1_score_pred = team1_score
                         existing_bet.team2_score_pred = team2_score
-                        existing_bet.created_at = datetime.utcnow()
+                        existing_bet.updated_at = datetime.utcnow()
                     else:
                         new_bet = Bet(
                             user_id=target_user_id,

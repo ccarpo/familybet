@@ -22,10 +22,17 @@ class ScoringService:
         return True
     
     @staticmethod
-    def get_leaderboard():
-        """Get sorted leaderboard with stats"""
-        users = User.query.all()
-        
+    def get_leaderboard(include_hidden=False):
+        """Get sorted leaderboard with stats
+
+        Args:
+            include_hidden: If True, include users hidden from leaderboard
+        """
+        query = User.query
+        if not include_hidden:
+            query = query.filter_by(is_hidden_from_leaderboard=False)
+        users = query.all()
+
         leaderboard = []
         for user in users:
             stats = ScoringService.get_user_stats(user.id)
@@ -37,14 +44,14 @@ class ScoringService:
                 'correct_winners': stats['correct_winners'],
                 'total_bets': stats['total_bets']
             })
-        
+
         # Sort by total points descending
         leaderboard.sort(key=lambda x: x['total_points'], reverse=True)
-        
+
         # Add rank
         for i, entry in enumerate(leaderboard, 1):
             entry['rank'] = i
-        
+
         return leaderboard
     
     @staticmethod

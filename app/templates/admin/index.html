@@ -145,30 +145,43 @@
                         <th class="text-left px-3 py-2">Name</th>
                         <th class="text-left px-3 py-2">Email</th>
                         <th class="text-center px-3 py-2">Admin</th>
+                        <th class="text-center px-3 py-2">Sichtbar</th>
                         <th class="text-right px-3 py-2">Punkte</th>
                         <th class="text-center px-3 py-2">Aktionen</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for u in users %}
-                    <tr class="border-b">
+                    <tr class="border-b {% if u.is_hidden_from_leaderboard %}bg-gray-100{% endif %}">
                         <td class="px-3 py-2 font-medium">{{ u.name }}</td>
                         <td class="px-3 py-2 text-gray-500">{{ u.email or '-' }}</td>
                         <td class="px-3 py-2 text-center">
                             {% if u.is_admin %}✓{% else %}-{% endif %}
                         </td>
+                        <td class="px-3 py-2 text-center">
+                            {% if u.is_hidden_from_leaderboard %}
+                                <span class="text-red-500" title="Ausgeblendet">🚫</span>
+                            {% else %}
+                                <span class="text-green-500" title="Sichtbar">✓</span>
+                            {% endif %}
+                        </td>
                         <td class="px-3 py-2 text-right font-semibold">
                             {{ u.get_total_points() }}
                         </td>
-                        <td class="px-3 py-2 text-center space-x-2">
-                            <a href="{{ url_for('admin.edit_user', user_id=u.id) }}" 
+                        <td class="px-3 py-2 text-center space-x-1">
+                            <a href="{{ url_for('admin.edit_user', user_id=u.id) }}"
                                class="text-green-600 hover:underline text-xs">
                                 Bearbeiten
                             </a>
-                            <a href="{{ url_for('admin.user_bets', user_id=u.id) }}" 
+                            <a href="{{ url_for('admin.user_bets', user_id=u.id) }}"
                                class="text-blue-600 hover:underline text-xs">
-                                Tipps verwalten
+                                Tipps
                             </a>
+                            <form method="POST" action="{{ url_for('admin.toggle_user_visibility', user_id=u.id) }}" class="inline">
+                                <button type="submit" class="text-xs {% if u.is_hidden_from_leaderboard %}text-green-600{% else %}text-red-600{% endif %} hover:underline">
+                                    {% if u.is_hidden_from_leaderboard %}Einblenden{% else %}Ausblenden{% endif %}
+                                </button>
+                            </form>
                         </td>
                     </tr>
                     {% endfor %}

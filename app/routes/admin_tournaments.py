@@ -158,6 +158,56 @@ def delete_tournament(tournament_id):
     return redirect(url_for('admin_tournaments.tournaments'))
 
 
+@admin_tournaments_bp.route('/admin/tournaments/<int:tournament_id>/results', methods=['GET', 'POST'])
+def enter_results(tournament_id):
+    """Enter match results for manual tournaments."""
+    from app.models import Match
+    from app.services.scoring import ScoringService
+    
+    tournament = Tournament.query.get_or_404(tournament_id)
+    
+    # Get matches for this tournament
+    league_shortcut = tournament.get_league_shortcut() or tournament.short_name
+    matches = Match.query.filter_by(league_shortcut=league_shortcut).order_by(Match.match_date).all()
+    
+    if request.method == 'POST':
+        updated = 0
+        for match in matches:
+            score1_key = f'score_{match.id}_team1'
+            score2_key = f'score_{match.id}_team2'
+            finished_key = f'finished_{match.id}'
+            
+            score1 = request.form.get(score1_key, '').strip()
+            score2 = request.form.get(score2_key, '').strip()
+            is_finished = finished_key in request.form
+            
+            # Update scores if provided
+            if score1 != '' and score2 != '':
+                match.team1_score = int(score1)
+                match.team2_score = int(score2)
+                match.is_finished = is_finished
+                
+                if is_finished:
+                    match.last_updated = datetime.utcnow()
+                    updated += 1
+        
+        db.session.commit()
+        
+        # Recalculate points for finished matches
+        if updated > 0:
+            ScoringService.recalculate_all_match_points(tournament_id=tournament.id)
+            flash(f'{updated} Spiele aktualisiert und Punkte neu berechnet', 'success')
+        else:
+            flash('Ergebnisse gespeichert', 'success')
+        
+        return redirect(url_for('admin_tournaments.enter_results', tournament_id=tournament_id))
+    
+    return render_template('admin/enter_results.html',
+                          tournament=tournament,
+                          matches=matches,
+                          user=get_current_user())
+
+
 @admin_tournaments_bp.route('/admin/tournaments/<int:tournament_id>/setup-groups', methods=['GET', 'POST'])
 def setup_groups(tournament_id):
     """Setup groups for a tournament."""

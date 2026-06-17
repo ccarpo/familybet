@@ -83,6 +83,20 @@
         </p>
     </div>
 
+    <!-- Results Entry -->
+    {% if tournament.provider_type == 'manual' %}
+    <div class="bg-white rounded-lg shadow-md p-4">
+        <h2 class="text-lg font-bold mb-4">🏆 Ergebnisse eintragen</h2>
+        <p class="text-sm text-gray-600 mb-3">
+            Trage hier die Endergebnisse für alle Spiele ein. Die Punkte werden automatisch neu berechnet.
+        </p>
+        <a href="{{ url_for('admin_tournaments.enter_results', tournament_id=tournament.id) }}" 
+           class="inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+            ➕ Ergebnisse eintragen
+        </a>
+    </div>
+    {% endif %}
+
     <!-- Matches Management (for manual tournaments) -->
     {% if tournament.provider_type == 'manual' %}
     <div class="bg-white rounded-lg shadow-md p-4">

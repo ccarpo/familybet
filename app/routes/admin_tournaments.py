@@ -105,3 +105,93 @@ def activate_tournament(tournament_id):
     tournament = Tournament.query.get(tournament_id)
     flash(f'Turnier "{tournament.name}" ist jetzt aktiv', 'success')
     return redirect(url_for('admin_tournaments.tournaments'))
+
+
+@admin_tournaments_bp.route('/admin/tournaments/<int:tournament_id>/setup-groups', methods=['GET', 'POST'])
+def setup_groups(tournament_id):
+    """Setup groups for a tournament."""
+    tournament = Tournament.query.get_or_404(tournament_id)
+    
+    if request.method == 'POST':
+        # Clear existing groups
+        TournamentGroup.query.filter_by(tournament_id=tournament_id).delete()
+        
+        # Create new groups
+        num_groups = request.form.get('num_groups', tournament.num_groups, type=int)
+        group_prefix = request.form.get('group_prefix', 'Gruppe')
+        
+        for i in range(num_groups):
+            code = chr(65 + i)  # A, B, C, ...
+            name = f"{group_prefix} {code}"
+            group = TournamentGroup(
+                tournament_id=tournament_id,
+                name=name,
+                code=code,
+                order_index=i
+            )
+            db.session.add(group)
+        
+        db.session.commit()
+        flash(f'{num_groups} Gruppen erstellt', 'success')
+        return redirect(url_for('admin_tournaments.tournament_detail', tournament_id=tournament_id))
+    
+    existing_groups = TournamentGroup.query.filter_by(tournament_id=tournament_id).count()
+    return render_template('admin/setup_groups.html',
+                          tournament=tournament,
+                          existing_groups=existing_groups,
+                          user=get_current_user())
+
+
+@admin_tournaments_bp.route('/admin/tournaments/<int:tournament_id>/assign-teams', methods=['GET', 'POST'])
+def assign_teams(tournament_id):
+    """Assign teams to groups."""
+    tournament = Tournament.query.get_or_404(tournament_id)
+    groups = TournamentGroup.query.filter_by(tournament_id=tournament_id).order_by(TournamentGroup.order_index).all()
+    
+    # Get available teams from matches or manual input
+    from app.services.teams import get_sorted_unique_teams
+    available_teams = get_sorted_unique_teams()
+    
+    if request.method == 'POST':
+        # Clear existing team assignments
+        TournamentTeam.query.filter_by(tournament_id=tournament_id).delete()
+        
+        # Process form data - teams are submitted as team_0, team_1, etc.
+        team_index = 0
+        while True:
+            team_name = request.form.get(f'team_{team_index}')
+            if team_name is None:
+                break
+            
+            team_name = team_name.strip()
+            if team_name:
+                # Get group selection
+                group_code = request.form.get(f'group_for_{team_index}')
+                group = next((g for g in groups if g.code == group_code), None)
+                
+                # Find team_id from available teams
+                team_id = next((tid for tname, tid in available_teams if tname == team_name), None)
+                
+                tournament_team = TournamentTeam(
+                    tournament_id=tournament_id,
+                    group_id=group.id if group else None,
+                    team_name=team_name,
+                    team_id=team_id
+                )
+                db.session.add(tournament_team)
+            
+            team_index += 1
+        
+        db.session.commit()
+        flash('Teams zugewiesen', 'success')
+        return redirect(url_for('admin_tournaments.tournament_detail', tournament_id=tournament_id))
+    
+    # Get existing assignments
+    existing_teams = TournamentTeam.query.filter_by(tournament_id=tournament_id).all()
+    
+    return render_template('admin/assign_teams.html',
+                          tournament=tournament,
+                          groups=groups,
+                          available_teams=available_teams,
+                          existing_teams=existing_teams,
+                          user=get_current_user())

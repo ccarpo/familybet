@@ -41,7 +41,7 @@
     <div class="bg-white rounded-lg shadow-md p-4">
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-bold">📊 Gruppen</h2>
-            <a href="{{ url_for('admin.setup_groups', tournament_id=tournament.id) }}" 
+            <a href="{{ url_for('admin_tournaments.setup_groups', tournament_id=tournament.id) }}" 
                class="text-sm text-blue-600 hover:underline">
                 Gruppen konfigurieren
             </a>
@@ -73,7 +73,7 @@
     <div class="bg-white rounded-lg shadow-md p-4">
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-bold">👥 Teams zuweisen</h2>
-            <a href="{{ url_for('admin.assign_teams', tournament_id=tournament.id) }}" 
+            <a href="{{ url_for('admin_tournaments.assign_teams', tournament_id=tournament.id) }}" 
                class="text-sm text-blue-600 hover:underline">
                 Teams bearbeiten
             </a>

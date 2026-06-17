@@ -281,7 +281,7 @@ def groups():
     my_bets = {bet.match_id: bet for bet in Bet.query.filter_by(user_id=user.id).all()}
 
     # Get all users for displaying their bets
-    all_users = User.query.order_by(User.first_name).all()
+    all_users = User.query.order_by(User.username).all()
 
     # Get all bets for group matches (for displaying other users' bets)
     group_match_ids = [m.id for m in group_matches]

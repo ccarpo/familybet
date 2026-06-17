@@ -247,8 +247,9 @@ def edit_groups():
                 
                 match_count = 0
                 for match in matches:
-                    # Update if round_type is 'group' or None (not yet set)
-                    if (match.round_type == 'group' or match.round_type is None) and match.round_name != new_group:
+                    # Only update group stage matches (not knockout)
+                    is_group_match = match.round_type == 'group' or (match.round_type is None and ('Gruppe' in match.round_name or match.round_name == 'Unknown'))
+                    if is_group_match and match.round_name != new_group:
                         match.round_name = new_group
                         match_count += 1
                 

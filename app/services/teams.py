@@ -57,7 +57,9 @@ def get_sorted_unique_teams(include_all=False):
                 teams_dict[team_name] = team_id
     
     # Return sorted list by team name (case-insensitive)
-    return sorted(teams_dict.items(), key=lambda x: x[0].lower())
+    result = sorted(teams_dict.items(), key=lambda x: x[0].lower())
+    logger.info(f"get_sorted_unique_teams: extracted {len(result)} unique teams from {len(matches)} matches")
+    return result
 
 
 def get_teams_from_matches(matches):

@@ -7,7 +7,7 @@ import sqlite3
 import os
 
 
-def migrate():
+def migrate(description=None):
     """Add betting_phase_locks table."""
     db_path = os.environ.get('DATABASE_PATH', '/app/data/familybet.db')
 
@@ -56,7 +56,7 @@ def migrate():
     return True
 
 
-def rollback():
+def rollback(description=None):
     """Remove betting_phase_locks table."""
     db_path = os.environ.get('DATABASE_PATH', '/app/data/familybet.db')
 

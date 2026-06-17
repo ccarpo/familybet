@@ -60,9 +60,12 @@ def update_scoring():
         points_exact = int(request.form.get('points_exact', 3))
         points_diff = int(request.form.get('points_diff', 2))
         points_winner = int(request.form.get('points_winner', 1))
+        points_champion = int(request.form.get('points_champion', 10))
+        points_finalist = int(request.form.get('points_finalist', 5))
+        points_semifinalist = int(request.form.get('points_semifinalist', 3))
         
         # Validate inputs
-        if points_exact < 0 or points_diff < 0 or points_winner < 0:
+        if any(p < 0 for p in [points_exact, points_diff, points_winner, points_champion, points_finalist, points_semifinalist]):
             flash('Punkte können nicht negativ sein', 'error')
             return redirect(url_for('admin.index'))
         
@@ -71,13 +74,21 @@ def update_scoring():
         active_tournament = Tournament.get_active()
         tournament_id = active_tournament.id if active_tournament else None
         
-        # Create new config for this tournament
-        ScoringConfig.create_new(points_exact, points_diff, points_winner, tournament_id=tournament_id)
+        # Create new config for this tournament with extra points
+        ScoringConfig.create_new(
+            points_exact=points_exact,
+            points_diff=points_diff,
+            points_winner=points_winner,
+            points_champion=points_champion,
+            points_finalist=points_finalist,
+            points_semifinalist=points_semifinalist,
+            tournament_id=tournament_id
+        )
         
         # Recalculate all points with new config (for this tournament)
         ScoringService.recalculate_all_match_points(tournament_id=tournament_id)
         
-        flash(f'Punktesystem aktualisiert: Exakt={points_exact}, Diff={points_diff}, Sieger={points_winner}. Alle Punkte wurden neu berechnet.', 'success')
+        flash(f'Punktesystem aktualisiert: Exakt={points_exact}, Diff={points_diff}, Sieger={points_winner}, Champion={points_champion}. Alle Punkte wurden neu berechnet.', 'success')
     except ValueError:
         flash('Bitte gültige Zahlen eingeben', 'error')
     except Exception as e:

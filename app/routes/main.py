@@ -3,6 +3,7 @@ from datetime import datetime
 from app import db
 from app.models import User, Match, Bet, TournamentBet, ScoringConfig, BettingPhaseLock
 from app.services.scoring import ScoringService
+from app.services.users import get_sorted_users
 
 main_bp = Blueprint('main', __name__)
 
@@ -52,7 +53,6 @@ def dashboard():
     my_rank = next((entry for entry in leaderboard if entry['user'].id == user.id), None)
 
     # Get all visible users for game overviews
-    from app.services.users import get_sorted_users
     all_users = get_sorted_users(include_hidden=False)
 
     # Get all bets for last 5 and next 5 games

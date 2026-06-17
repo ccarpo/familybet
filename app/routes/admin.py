@@ -207,11 +207,37 @@ def edit_groups():
         action = request.form.get('action', '')
         
         if action == 'move_team':
-            # Move all matches for a team to a new group
+            # Move team to new group
             team_name = request.form.get('team_name', '').strip()
             new_group = request.form.get('new_group', '').strip()
             
             if team_name and new_group:
+                # Get active tournament
+                active_tournament = Tournament.get_active()
+                if not active_tournament:
+                    flash('Kein aktives Turnier vorhanden', 'error')
+                    return redirect(url_for('admin.edit_groups'))
+                
+                # Find the new group
+                new_group_obj = TournamentGroup.query.filter_by(
+                    tournament_id=active_tournament.id,
+                    name=new_group
+                ).first()
+                
+                if not new_group_obj:
+                    flash(f'Gruppe {new_group} nicht gefunden', 'error')
+                    return redirect(url_for('admin.edit_groups'))
+                
+                # Update TournamentTeam assignment
+                tournament_team = TournamentTeam.query.filter_by(
+                    tournament_id=active_tournament.id,
+                    team_name=team_name
+                ).first()
+                
+                if tournament_team:
+                    tournament_team.group_id = new_group_obj.id
+                
+                # Update all matches for this team
                 matches = Match.query.filter(
                     db.or_(
                         Match.team1_name == team_name,
@@ -219,15 +245,14 @@ def edit_groups():
                     )
                 ).all()
                 
-                updated_count = 0
+                match_count = 0
                 for match in matches:
-                    # Update all group stage matches for this team (only if not already in target group)
-                    if ('Gruppe' in match.round_name or match.round_name == 'Unknown') and match.round_name != new_group:
+                    if match.round_type == 'group' and match.round_name != new_group:
                         match.round_name = new_group
-                        updated_count += 1
+                        match_count += 1
                 
                 db.session.commit()
-                flash(f'Team {team_name} wurde nach {new_group} verschoben ({updated_count} Spiele aktualisiert)', 'success')
+                flash(f'Team {team_name} wurde nach {new_group} verschoben', 'success')
         
         return redirect(url_for('admin.edit_groups'))
     

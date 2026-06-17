@@ -105,12 +105,6 @@ def import_bets(data_dict):
 
             print(f"\n🎯 {match.team1_name} vs {match.team2_name} (ID: {match.id})")
 
-            # Skip if match already started
-            if match.has_started():
-                print(f"   ⏭️ Match already started, skipping")
-                skipped_count += len(user_tips)
-                continue
-
             for user_name, tip_str in user_tips.items():
                 # Skip if not in whitelist
                 if user_name not in USERS_TO_IMPORT:

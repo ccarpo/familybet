@@ -144,15 +144,25 @@ class ScoringService:
         }
     
     @staticmethod
-    def calculate_tournament_points():
+    def calculate_tournament_points(tournament_id=None):
         """
         Calculate points for tournament bets after tournament ends.
         This should be called once all semifinals are done and final is complete.
         
-        Points system for tournament bets:
-        - Correct winner: 10 points
-        - Correct semifinalist: 5 points each (excluding winner)
+        Args:
+            tournament_id: Optional tournament ID (uses active if not specified)
         """
+        from app.models import Tournament, ScoringConfig
+        
+        # Get active tournament if none specified
+        if tournament_id is None:
+            active_tournament = Tournament.get_active()
+            if active_tournament:
+                tournament_id = active_tournament.id
+        
+        # Get scoring config for extra points
+        scoring_config = ScoringConfig.get_current(tournament_id=tournament_id)
+        
         # Get the final match to determine winner
         final_match = Match.query.filter(
             Match.round_name.ilike('%finale%')
@@ -185,20 +195,21 @@ class ScoringService:
         for bet in tournament_bets:
             points = 0
             
-            # Check winner (10 points)
+            # Check winner (champion points from config)
             if bet.winner_team_id == winner_id:
-                points += 10
+                points += scoring_config.points_champion or 0
             
-            # Check semifinalists (5 points each, excluding the winner team)
+            # Check semifinalists (semifinalist points from config, excluding winner team)
             semifinalists = [
                 bet.semifinalist1_id,
                 bet.semifinalist2_id,
                 bet.semifinalist3_id
             ]
             
+            semifinalist_points = scoring_config.points_semifinalist or 0
             for sf_id in semifinalists:
                 if sf_id in semifinalist_ids and sf_id != winner_id:
-                    points += 5
+                    points += semifinalist_points
             
             bet.points_earned = points
         

@@ -219,6 +219,11 @@ class ScoringConfig(db.Model):
     points_diff = db.Column(db.Integer, default=2)     # Correct goal difference
     points_winner = db.Column(db.Integer, default=1)    # Correct winner/draw
     
+    # Extra points for tournament predictions (can be 0 if not used)
+    points_champion = db.Column(db.Integer, default=10)      # Correct champion
+    points_finalist = db.Column(db.Integer, default=5)     # Correct finalist
+    points_semifinalist = db.Column(db.Integer, default=3)  # Correct semifinalist
+    
     # Metadata
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -258,7 +263,9 @@ class ScoringConfig(db.Model):
         return ScoringConfig.get_current(tournament_id=tournament_id)
     
     @staticmethod
-    def create_new(points_exact, points_diff, points_winner, tournament_id=None):
+    def create_new(points_exact, points_diff, points_winner, 
+                   points_champion=10, points_finalist=5, points_semifinalist=3,
+                   tournament_id=None):
         """Create a new scoring config and deactivate old ones"""
         # Deactivate all existing configs (optionally scoped to tournament)
         query = ScoringConfig.query.filter_by(is_active=True)
@@ -274,6 +281,9 @@ class ScoringConfig(db.Model):
             points_exact=points_exact,
             points_diff=points_diff,
             points_winner=points_winner,
+            points_champion=points_champion,
+            points_finalist=points_finalist,
+            points_semifinalist=points_semifinalist,
             is_active=True
         )
         db.session.add(new_config)

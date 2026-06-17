@@ -312,7 +312,11 @@ def recalculate_points():
 @admin_bp.route('/admin/calculate-tournament-points', methods=['POST'])
 def calculate_tournament_points():
     try:
-        result = ScoringService.calculate_tournament_points()
+        # Get active tournament
+        active_tournament = Tournament.get_active()
+        tournament_id = active_tournament.id if active_tournament else None
+        
+        result = ScoringService.calculate_tournament_points(tournament_id=tournament_id)
         if result:
             flash('Turnierpunkte berechnet', 'success')
         else:

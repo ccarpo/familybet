@@ -280,10 +280,14 @@ def groups():
     # Get user bets
     my_bets = {bet.match_id: bet for bet in Bet.query.filter_by(user_id=user.id).all()}
 
+    # Get phase locks
+    phase_locks = BettingPhaseLock.get_all_locks()
+
     return render_template('groups.html',
                           groups_data=groups_data,
                           my_bets=my_bets,
-                          user=user)
+                          user=user,
+                          phase_locks=phase_locks)
 
 
 @main_bp.route('/round/last16')
@@ -329,12 +333,16 @@ def round_champion():
     # Get user bets
     my_bets = {bet.match_id: bet for bet in Bet.query.filter_by(user_id=user.id).all()}
 
+    # Get phase locks
+    phase_locks = BettingPhaseLock.get_all_locks()
+
     return render_template('ko_round.html',
                           round_name='Finale & Spiel um Platz 3',
                           matches=matches,
                           my_bets=my_bets,
                           user=user,
-                          show_qualifiers=False)
+                          show_qualifiers=False,
+                          phase_locks=phase_locks)
 
 
 def _show_ko_round(round_keyword, display_name):
@@ -352,13 +360,17 @@ def _show_ko_round(round_keyword, display_name):
     # Get qualified teams from groups (for display purposes)
     qualified_teams = _get_qualified_teams()
 
+    # Get phase locks
+    phase_locks = BettingPhaseLock.get_all_locks()
+
     return render_template('ko_round.html',
                           round_name=display_name,
                           matches=matches,
                           my_bets=my_bets,
                           qualified_teams=qualified_teams,
                           user=user,
-                          show_qualifiers=True)
+                          show_qualifiers=True,
+                          phase_locks=phase_locks)
 
 
 def _get_qualified_teams():

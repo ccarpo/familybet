@@ -3,11 +3,30 @@
 {% block title %}{{ round_name }} - FamilyBet{% endblock %}
 
 {% block content %}
+<!-- Determine phase key from round_name -->
+{% set phase_key = 'finale' %}
+{% if 'Sechzehntel' in round_name %}
+    {% set phase_key = 'sechzehntelfinale' %}
+{% elif 'Achtel' in round_name %}
+    {% set phase_key = 'achtelfinale' %}
+{% elif 'Viertel' in round_name %}
+    {% set phase_key = 'viertelfinale' %}
+{% elif 'Halb' in round_name %}
+    {% set phase_key = 'halbfinale' %}
+{% endif %}
+
 <div class="space-y-6">
     <div class="flex items-center justify-between">
         <h1 class="text-2xl font-bold">🏆 {{ round_name }}</h1>
         <a href="{{ url_for('main.matches') }}" class="text-blue-600 hover:underline text-sm">→ Alle Spiele tippen</a>
     </div>
+
+    <!-- Locked Warning -->
+    {% if phase_locks[phase_key].is_locked %}
+    <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+        <p class="text-red-800 font-semibold">🔒 Diese Runde ist gesperrt. Tipps können nicht mehr abgegeben oder geändert werden.</p>
+    </div>
+    {% endif %}
 
     <!-- Qualified Teams Info (for early rounds) -->
     {% if show_qualifiers and qualified_teams %}
@@ -47,7 +66,9 @@
 
     <!-- Matches -->
     {% if matches %}
+    {% if not phase_locks[phase_key].is_locked %}
     <form method="POST" action="{{ url_for('bets.place_batch_bets') }}" id="ko-bets-form">
+    {% endif %}
         <div class="bg-white rounded-lg shadow-md overflow-hidden">
             <div class="px-4 py-3 bg-blue-100">
                 <h2 class="text-lg font-bold text-blue-800">Spiele</h2>
@@ -82,7 +103,7 @@
                         <div class="flex items-center gap-2">
                             {% if match.is_finished %}
                                 <span class="text-xl font-bold text-gray-400">:</span>
-                            {% elif not match.has_started() %}
+                            {% elif not match.has_started() and not phase_locks[phase_key].is_locked %}
                                 {% set my_bet = my_bets.get(match.id) %}
                                 <input type="number" name="bets" min="0" placeholder="-"
                                        value="{% if my_bet %}{{ my_bet.team1_score_pred }}{% endif %}"
@@ -128,7 +149,7 @@
             </div>
 
             <!-- Submit Button -->
-            {% if matches|selectattr('has_started')|list|length < matches|length %}
+            {% if not phase_locks[phase_key].is_locked and matches|selectattr('has_started')|list|length < matches|length %}
             <div class="p-4 bg-gray-50 border-t">
                 <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-bold text-lg">
                     💾 Tipps speichern
@@ -136,7 +157,9 @@
             </div>
             {% endif %}
         </div>
+    {% if not phase_locks[phase_key].is_locked %}
     </form>
+    {% endif %}
     {% else %}
     <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-8 text-center">
         <p class="text-yellow-800">Noch keine Spiele für diese Runde vorhanden.</p>

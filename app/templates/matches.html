@@ -27,6 +27,47 @@
     </div>
     {% endif %}
 
+    <!-- KO Rounds Summary -->
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        {% set ko_rounds = {
+            'Sechzehntelfinale': {'url': 'main.round_last16', 'icon': '🏆', 'desc': '16 Teams'},
+            'Achtelfinale': {'url': 'main.round_quarter', 'icon': '🏆', 'desc': '8 Teams'},
+            'Viertelfinale': {'url': 'main.round_semi', 'icon': '🏆', 'desc': '4 Teams'},
+            'Halbfinale': {'url': 'main.round_final', 'icon': '🏆', 'desc': '2 Spiele'},
+            'Finale': {'url': 'main.round_champion', 'icon': '🏆', 'desc': 'Finale & Platz 3'}
+        } %}
+
+        {% for round_keyword, round_info in ko_rounds.items() %}
+            {% set round_matches = [] %}
+            {% for round_name, matches in rounds.items() %}
+                {% if round_keyword in round_name %}
+                    {% set round_matches = matches %}
+                {% endif %}
+            {% endfor %}
+
+            <a href="{{ url_for(round_info.url) }}" class="block bg-white rounded-lg shadow-md p-3 hover:shadow-lg transition-shadow">
+                <div class="text-center">
+                    <div class="text-2xl mb-1">{{ round_info.icon }}</div>
+                    <div class="font-bold text-sm">{{ round_keyword }}</div>
+                    <div class="text-xs text-gray-500">{{ round_info.desc }}</div>
+                    {% if round_matches %}
+                        <div class="mt-2 text-xs">
+                            <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+                                {{ round_matches|length }} Spiele
+                            </span>
+                        </div>
+                        {% set finished = round_matches|selectattr('is_finished', 'equalto', true)|list|length %}
+                        {% if finished > 0 %}
+                        <div class="mt-1 text-xs text-green-600">{{ finished }} beendet</div>
+                        {% endif %}
+                    {% else %}
+                        <div class="mt-2 text-xs text-gray-400">Noch offen</div>
+                    {% endif %}
+                </div>
+            </a>
+        {% endfor %}
+    </div>
+
     <!-- Tournament Bet Form (only if tournament hasn't started) -->
     {% if rounds %}
         {% set first_round = rounds.values()|first %}
@@ -99,216 +140,16 @@
         {% endif %}
     {% endif %}
 
-{% set group_colors = {'Gruppe A': 'bg-red-100 text-red-800', 'Gruppe B': 'bg-orange-100 text-orange-800', 'Gruppe C': 'bg-yellow-100 text-yellow-800', 'Gruppe D': 'bg-green-100 text-green-800', 'Gruppe E': 'bg-teal-100 text-teal-800', 'Gruppe F': 'bg-blue-100 text-blue-800', 'Gruppe G': 'bg-indigo-100 text-indigo-800', 'Gruppe H': 'bg-purple-100 text-purple-800', 'Gruppe I': 'bg-pink-100 text-pink-800', 'Gruppe J': 'bg-rose-100 text-rose-800', 'Gruppe K': 'bg-cyan-100 text-cyan-800', 'Gruppe L': 'bg-emerald-100 text-emerald-800'} %}
-
-    <!-- Batch Bet Form -->
-    <form method="POST" action="{{ url_for('bets.place_batch_bets') }}" id="batch-bets-form">
-    
-    <!-- Group Phase Matches -->
+    <!-- Link to Group Phase -->
     {% if 'Gruppe' in rounds.keys()|join(' ') %}
-    <div class="bg-white rounded-lg shadow-md p-3 mb-4">
-        <h2 class="text-lg font-bold mb-2 text-blue-800">📊 Gruppenphase</h2>
-        <div class="space-y-1">
-            {% for round_name, matches in rounds.items() %}
-                {% if 'Gruppe' in round_name %}
-                    {% for match in matches %}
-                    {% set group_class = group_colors.get(round_name, 'bg-gray-100 text-gray-800') %}
-                    <div class="match-card flex items-center gap-2 p-2 rounded border text-sm {% if match.is_finished %}bg-gray-50{% elif match.has_started() %}bg-yellow-50{% else %}bg-white{% endif %}">
-                        <!-- Group Badge -->
-                        <span class="px-2 py-1 rounded text-xs font-bold whitespace-nowrap {{ group_class }}">
-                            {{ round_name|replace('Gruppe ', '') }}
-                        </span>
-                        
-                        <!-- Teams & Score (compact) -->
-                        <div class="flex-1 flex items-center justify-between min-w-0">
-                            <div class="flex items-center gap-2 truncate">
-                                <span class="font-medium truncate">{{ match.team1_name }}</span>
-                                <span class="text-gray-400">vs</span>
-                                <span class="font-medium truncate">{{ match.team2_name }}</span>
-                            </div>
-                            
-                            <div class="flex items-center gap-3">
-                                <!-- Result -->
-                                {% if match.is_finished %}
-                                <span class="font-bold text-lg">{{ match.team1_score }}:{{ match.team2_score }}</span>
-                                {% elif match.has_started() %}
-                                <span class="text-xs text-yellow-600 font-semibold">LIVE</span>
-                                {% endif %}
-                                
-                                <!-- Bet Info / Quick Bet Form -->
-                                {% if match.is_finished %}
-                                    {% if match.id in my_bets %}
-                                        {% set bet = my_bets[match.id] %}
-                                        <div class="flex items-center gap-1 text-xs">
-                                            <span class="text-blue-600">{{ bet.team1_score_pred }}:{{ bet.team2_score_pred }}</span>
-                                            {% if bet.points_earned > 0 %}
-                                            <span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold">+{{ bet.points_earned }}P</span>
-                                            {% else %}
-                                            <span class="bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold">0P</span>
-                                            {% endif %}
-                                        </div>
-                                    {% endif %}
-                                {% elif not match.has_started() %}
-                                    {% set my_bet = my_bets.get(match.id) %}
-                                    <div class="flex items-center gap-1">
-                                        <input type="number" name="bet_match_{{ match.id }}_team1" min="0"
-                                               value="{% if my_bet %}{{ my_bet.team1_score_pred }}{% endif %}"
-                                               class="w-10 text-center text-sm border rounded py-0.5 focus:ring-1 focus:ring-blue-500"
-                                               placeholder="-">
-                                        <span class="text-gray-400">:</span>
-                                        <input type="number" name="bet_match_{{ match.id }}_team2" min="0"
-                                               value="{% if my_bet %}{{ my_bet.team2_score_pred }}{% endif %}"
-                                               class="w-10 text-center text-sm border rounded py-0.5 focus:ring-1 focus:ring-blue-500"
-                                               placeholder="-">
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        
-                        <!-- Time -->
-                        <span class="text-xs text-gray-500 whitespace-nowrap">{{ match.match_date.strftime('%d.%m %H:%M') }}</span>
-                    </div>
-                    {% endfor %}
-                {% endif %}
-            {% endfor %}
-        </div>
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+        <h2 class="text-xl font-bold text-blue-800 mb-2">📊 Gruppenphase</h2>
+        <p class="text-gray-600 mb-4">Tippe jetzt die Gruppenspiele mit Tabellenübersicht</p>
+        <a href="{{ url_for('main.groups') }}" class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold">
+            → Zur Gruppenphase
+        </a>
     </div>
-    {% endif %}
-
-    <!-- KO Rounds Summary -->
-    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        {% set ko_rounds = {
-            'Sechzehntelfinale': {'url': 'main.round_last16', 'icon': '🏆', 'desc': '16 Teams'},
-            'Achtelfinale': {'url': 'main.round_quarter', 'icon': '🏆', 'desc': '8 Teams'},
-            'Viertelfinale': {'url': 'main.round_semi', 'icon': '🏆', 'desc': '4 Teams'},
-            'Halbfinale': {'url': 'main.round_final', 'icon': '🏆', 'desc': '2 Spiele'},
-            'Finale': {'url': 'main.round_champion', 'icon': '🏆', 'desc': 'Finale & Platz 3'}
-        } %}
-
-        {% for round_keyword, round_info in ko_rounds.items() %}
-            {% set round_matches = [] %}
-            {% for round_name, matches in rounds.items() %}
-                {% if round_keyword in round_name %}
-                    {% set round_matches = matches %}
-                {% endif %}
-            {% endfor %}
-
-            <a href="{{ url_for(round_info.url) }}" class="block bg-white rounded-lg shadow-md p-3 hover:shadow-lg transition-shadow">
-                <div class="text-center">
-                    <div class="text-2xl mb-1">{{ round_info.icon }}</div>
-                    <div class="font-bold text-sm">{{ round_keyword }}</div>
-                    <div class="text-xs text-gray-500">{{ round_info.desc }}</div>
-                    {% if round_matches %}
-                        <div class="mt-2 text-xs">
-                            <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
-                                {{ round_matches|length }} Spiele
-                            </span>
-                        </div>
-                        {% set finished = round_matches|selectattr('is_finished', 'equalto', true)|list|length %}
-                        {% if finished > 0 %}
-                        <div class="mt-1 text-xs text-green-600">{{ finished }} beendet</div>
-                        {% endif %}
-                    {% else %}
-                        <div class="mt-2 text-xs text-gray-400">Noch offen</div>
-                    {% endif %}
-                </div>
-            </a>
-        {% endfor %}
-    </div>
-
-    <!-- Quick Group Phase Bets -->
-    {% if 'Gruppe' in rounds.keys()|join(' ') %}
-    <form method="POST" action="{{ url_for('bets.place_batch_bets') }}" id="batch-bets-form">
-        <div class="bg-white rounded-lg shadow-md p-3">
-            <div class="flex items-center justify-between mb-3">
-                <h2 class="text-lg font-bold text-blue-800">📊 Gruppenphase - Schnelltipps</h2>
-                <a href="{{ url_for('main.groups') }}" class="text-sm text-blue-600 hover:underline">Details →</a>
-            </div>
-            <div class="space-y-1 max-h-96 overflow-y-auto">
-                {% for round_name, matches in rounds.items() %}
-                    {% if 'Gruppe' in round_name %}
-                        {% set group_class = group_colors.get(round_name, 'bg-gray-100 text-gray-800') %}
-                        {% for match in matches %}
-                        <div class="match-card flex items-center gap-2 p-2 rounded border text-sm {% if match.is_finished %}bg-gray-50{% elif match.has_started() %}bg-yellow-50{% else %}bg-white{% endif %}">
-                            <!-- Group Badge -->
-                            <span class="px-2 py-1 rounded text-xs font-bold whitespace-nowrap {{ group_class }}">
-                                {{ round_name|replace('Gruppe ', '') }}
-                            </span>
-
-                            <!-- Teams & Score (compact) -->
-                            <div class="flex-1 flex items-center justify-between min-w-0">
-                                <div class="flex items-center gap-2 truncate">
-                                    <span class="font-medium truncate">{{ match.team1_name }}</span>
-                                    <span class="text-gray-400">vs</span>
-                                    <span class="font-medium truncate">{{ match.team2_name }}</span>
-                                </div>
-
-                                <div class="flex items-center gap-3">
-                                    <!-- Result -->
-                                    {% if match.is_finished %}
-                                    <span class="font-bold text-lg">{{ match.team1_score }}:{{ match.team2_score }}</span>
-                                    {% elif match.has_started() %}
-                                    <span class="text-xs text-yellow-600 font-semibold">LIVE</span>
-                                    {% endif %}
-
-                                    <!-- Bet Info / Quick Bet Form -->
-                                    {% if match.is_finished %}
-                                        {% if match.id in my_bets %}
-                                            {% set bet = my_bets[match.id] %}
-                                            <div class="flex items-center gap-1 text-xs">
-                                                <span class="text-blue-600">{{ bet.team1_score_pred }}:{{ bet.team2_score_pred }}</span>
-                                                {% if bet.points_earned > 0 %}
-                                                <span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold">+{{ bet.points_earned }}P</span>
-                                                {% else %}
-                                                <span class="bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold">0P</span>
-                                                {% endif %}
-                                            </div>
-                                        {% endif %}
-                                    {% elif not match.has_started() %}
-                                        {% set my_bet = my_bets.get(match.id) %}
-                                        <div class="flex items-center gap-1">
-                                            <input type="number" name="bet_match_{{ match.id }}_team1" min="0"
-                                                   value="{% if my_bet %}{{ my_bet.team1_score_pred }}{% endif %}"
-                                                   class="w-10 text-center text-sm border rounded py-0.5 focus:ring-1 focus:ring-blue-500"
-                                                   placeholder="-">
-                                            <span class="text-gray-400">:</span>
-                                            <input type="number" name="bet_match_{{ match.id }}_team2" min="0"
-                                                   value="{% if my_bet %}{{ my_bet.team2_score_pred }}{% endif %}"
-                                                   class="w-10 text-center text-sm border rounded py-0.5 focus:ring-1 focus:ring-blue-500"
-                                                   placeholder="-">
-                                        </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-
-                            <!-- Time -->
-                            <span class="text-xs text-gray-500 whitespace-nowrap">{{ match.match_date.strftime('%d.%m %H:%M') }}</span>
-                        </div>
-                        {% endfor %}
-                    {% endif %}
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- Submit Button -->
-        <div class="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-64 z-50">
-            <button type="submit"
-                    class="w-full bg-green-600 text-white py-3 px-6 rounded-lg shadow-lg hover:bg-green-700 font-bold text-lg">
-                💾 Tipps speichern
-            </button>
-        </div>
-    </form>
     {% endif %}
 </div>
 
-{% if 'Gruppe' in rounds.keys()|join(' ') %}
-<script>
-// Auto-save indicator
-document.getElementById('batch-bets-form').addEventListener('submit', function() {
-    const btn = this.querySelector('button[type="submit"]');
-    btn.textContent = '💾 Speichern...';
-    btn.disabled = true;
-});
-</script>
-{% endif %}
 {% endblock %}

@@ -85,10 +85,10 @@ def update_scoring():
             tournament_id=tournament_id
         )
         
-        # Recalculate all points with new config (for this tournament)
+        # Recalculate match points with new config (for this tournament)
         ScoringService.recalculate_all_match_points(tournament_id=tournament_id)
         
-        flash(f'Punktesystem aktualisiert: Exakt={points_exact}, Diff={points_diff}, Sieger={points_winner}, Champion={points_champion}. Alle Punkte wurden neu berechnet.', 'success')
+        flash(f'Punktesystem aktualisiert: Exakt={points_exact}, Diff={points_diff}, Sieger={points_winner}, Champion={points_champion}. Match-Punkte neu berechnet. Turnierpunkte separat berechnen (Button "Turnierpunkte berechnen").', 'success')
     except ValueError:
         flash('Bitte gültige Zahlen eingeben', 'error')
     except Exception as e:
@@ -122,11 +122,49 @@ def add_user():
 
 @admin_bp.route('/admin/assign-groups', methods=['POST'])
 def assign_groups():
-    """Assign hardcoded WM2026 groups to all matches"""
+    """Assign teams to matches based on Tournament data"""
+    from app.models import Tournament, TournamentGroup, TournamentTeam, Match
+    
     try:
-        from app.services.wm2026_groups import assign_groups_to_matches
-        count = assign_groups_to_matches()
-        flash(f'{count} Spiele wurden den korrekten WM2026 Gruppen zugeordnet', 'success')
+        # Get active tournament
+        active_tournament = Tournament.get_active()
+        if not active_tournament:
+            flash('Kein aktives Turnier vorhanden', 'error')
+            return redirect(url_for('admin.check_data'))
+        
+        # Get all tournament teams with their groups
+        tournament_teams = TournamentTeam.query.filter_by(
+            tournament_id=active_tournament.id
+        ).all()
+        
+        # Build team -> group mapping
+        team_to_group = {}
+        for tt in tournament_teams:
+            if tt.group:
+                team_to_group[tt.team_name] = tt.group.name
+        
+        # Get all matches for this tournament's league
+        if active_tournament.league_shortcut:
+            matches = Match.query.filter_by(
+                league_shortcut=active_tournament.league_shortcut
+            ).all()
+        else:
+            matches = Match.query.all()
+        
+        # Assign group to each match based on team assignments
+        assigned_count = 0
+        for match in matches:
+            # Check if team1 has a group assignment
+            if match.team1_name in team_to_group:
+                match.round_name = team_to_group[match.team1_name]
+                assigned_count += 1
+            # Check if team2 has a group assignment
+            elif match.team2_name in team_to_group:
+                match.round_name = team_to_group[match.team2_name]
+                assigned_count += 1
+        
+        db.session.commit()
+        flash(f'{assigned_count} Spiele wurden den Gruppen zugeordnet ({active_tournament.name})', 'success')
     except Exception as e:
         flash(f'Fehler bei Gruppenzuordnung: {str(e)}', 'error')
     
@@ -193,42 +231,65 @@ def edit_groups():
         
         return redirect(url_for('admin.edit_groups'))
     
-    # Get all matches
-    all_matches = Match.query.all()
+    # Get active tournament
+    from app.models import Tournament, TournamentGroup, TournamentTeam
+    active_tournament = Tournament.get_active()
+    if not active_tournament:
+        flash('Kein aktives Turnier vorhanden', 'error')
+        return redirect(url_for('admin.index'))
     
-    # Extract all teams and their current groups
-    teams_data = defaultdict(lambda: {'group': 'Unknown', 'matches': []})
+    # Get groups from tournament data
+    tournament_groups = TournamentGroup.query.filter_by(
+        tournament_id=active_tournament.id
+    ).order_by(TournamentGroup.order_index).all()
     
-    for match in all_matches:
-        t1_name = match.team1_name
-        t2_name = match.team2_name
-        
-        # Track group info for each team
-        if 'Gruppe' in match.round_name:
-            teams_data[t1_name]['group'] = match.round_name
-            teams_data[t2_name]['group'] = match.round_name
-        
-        teams_data[t1_name]['matches'].append(match)
-        teams_data[t2_name]['matches'].append(match)
-    
-    # Group teams by their assigned group
+    # Build groups dict from TournamentTeam assignments
     groups = defaultdict(list)
     unassigned = []
     
-    for team_name, data in teams_data.items():
-        if 'Gruppe' in data['group']:
-            groups[data['group']].append(team_name)
-        else:
-            unassigned.append(team_name)
+    for group in tournament_groups:
+        teams_in_group = TournamentTeam.query.filter_by(
+            tournament_id=active_tournament.id,
+            group_id=group.id
+        ).all()
+        for team in teams_in_group:
+            groups[group.name].append(team.team_name)
     
-    # Get group matches for display
+    # Find unassigned teams (teams in tournament but not in any group)
+    all_tournament_teams = TournamentTeam.query.filter_by(
+        tournament_id=active_tournament.id
+    ).all()
+    assigned_team_names = set()
+    for group_teams in groups.values():
+        assigned_team_names.update(group_teams)
+    
+    for team in all_tournament_teams:
+        if team.team_name not in assigned_team_names:
+            unassigned.append(team.team_name)
+    
+    # Build teams_data for template compatibility
+    teams_data = defaultdict(lambda: {'group': 'Unknown', 'matches': []})
+    for group_name, team_names in groups.items():
+        for team_name in team_names:
+            teams_data[team_name]['group'] = group_name
+    for team_name in unassigned:
+        teams_data[team_name]['group'] = 'Unknown'
+    
+    # Get matches for each group from Match table
     group_matches = {}
-    for group_name in ['Gruppe A', 'Gruppe B', 'Gruppe C', 'Gruppe D', 
-                       'Gruppe E', 'Gruppe F', 'Gruppe G', 'Gruppe H',
-                       'Gruppe I', 'Gruppe J', 'Gruppe K', 'Gruppe L']:
-        group_matches[group_name] = Match.query.filter_by(round_name=group_name).order_by(Match.match_date).all()
+    for group in tournament_groups:
+        if active_tournament.league_shortcut:
+            group_matches[group.name] = Match.query.filter_by(
+                round_name=group.name,
+                league_shortcut=active_tournament.league_shortcut
+            ).order_by(Match.match_date).all()
+        else:
+            group_matches[group.name] = Match.query.filter_by(
+                round_name=group.name
+            ).order_by(Match.match_date).all()
     
     return render_template('admin/edit_groups.html', 
+                          tournament=active_tournament,
                           groups=dict(groups), 
                           unassigned=unassigned,
                           group_matches=group_matches,

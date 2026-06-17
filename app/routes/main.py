@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, session, redirect, url_for, flash, request
 from datetime import datetime
+from app import db
 from app.models import User, Match, Bet, TournamentBet, ScoringConfig
 from app.services.scoring import ScoringService
 
@@ -84,10 +85,10 @@ def matches():
     user = get_current_user()
     if not user:
         return redirect(url_for('auth.login'))
-    
+
     # Get all matches grouped by round
     all_matches = Match.query.order_by(Match.match_date).all()
-    
+
     # Group by round
     rounds = {}
     for match in all_matches:
@@ -95,15 +96,25 @@ def matches():
         if round_name not in rounds:
             rounds[round_name] = []
         rounds[round_name].append(match)
-    
+
     # Get user's bets for quick lookup
     my_bets = {bet.match_id: bet for bet in Bet.query.filter_by(user_id=user.id).all()}
-    
+
+    # Build deduplicated, sorted teams list for tournament bet dropdown
+    teams_dict = {}
+    for match in all_matches:
+        if match.team1_name and match.team1_name not in ('TBD', 'TBA', '-'):
+            teams_dict[match.team1_name] = match.team1_id
+        if match.team2_name and match.team2_name not in ('TBD', 'TBA', '-'):
+            teams_dict[match.team2_name] = match.team2_id
+    sorted_teams = sorted(teams_dict.items(), key=lambda x: x[0])
+
     return render_template('matches.html',
                           rounds=rounds,
                           my_bets=my_bets,
                           now=datetime.utcnow(),
-                          user=user)
+                          user=user,
+                          sorted_teams=sorted_teams)
 
 @main_bp.route('/matches/<int:match_id>')
 def match_detail(match_id):
@@ -205,5 +216,3 @@ def profile():
         return redirect(url_for('main.profile'))
     
     return render_template('profile.html', user=user)
-
-from flask import request

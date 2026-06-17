@@ -10,15 +10,6 @@
     {% if rounds %}
         {% set first_round = rounds.values()|first %}
         {% if first_round and not first_round[0].has_started() %}
-        {% set all_teams = {} %}
-        {% for round_matches in rounds.values() %}
-            {% for match in round_matches %}
-                {% if match.team1_name not in all_teams %}{% set _ = all_teams.update({match.team1_name: match.team1_id}) %}{% endif %}
-                {% if match.team2_name not in all_teams %}{% set _ = all_teams.update({match.team2_name: match.team2_id}) %}{% endif %}
-            {% endfor %}
-        {% endfor %}
-        {% set sorted_teams = all_teams.items()|sort %}
-        
         <div id="tournament-bet" class="bg-yellow-50 border border-yellow-300 rounded-lg p-4">
             <h2 class="text-lg font-bold mb-3">🏆 Turniertipp abgeben</h2>
             <p class="text-sm text-gray-600 mb-3">Tippe vor Turnierbeginn den Weltmeister und die anderen 3 Halbfinalisten.</p>

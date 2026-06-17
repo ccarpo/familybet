@@ -90,11 +90,17 @@ def tournament_detail(tournament_id):
         if team.group_id in teams_by_group:
             teams_by_group[team.group_id].append(team)
     
+    # Get matches for this tournament
+    from app.models import Match
+    league_shortcut = tournament.get_league_shortcut() or tournament.short_name
+    matches = Match.query.filter_by(league_shortcut=league_shortcut).all()
+    
     return render_template('admin/tournament_detail.html',
                           tournament=tournament,
                           groups=groups,
                           teams_by_group=teams_by_group,
                           rounds=rounds,
+                          matches=matches,
                           user=get_current_user())
 
 
@@ -333,12 +339,18 @@ def edit_match(match_id):
     
     match = Match.query.get_or_404(match_id)
     
-    # Get tournament for this match
+    # Get tournament for this match (SQLite-compatible JSON query)
     tournament = Tournament.query.filter_by(
         short_name=match.league_shortcut
-    ).first() or Tournament.query.filter(
-        Tournament.provider_config['league_shortcut'].astext == match.league_shortcut
     ).first()
+    
+    if not tournament:
+        # For SQLite, we need to check JSON in Python
+        all_tournaments = Tournament.query.all()
+        for t in all_tournaments:
+            if t.provider_config and t.provider_config.get('league_shortcut') == match.league_shortcut:
+                tournament = t
+                break
     
     if not tournament or tournament.provider_type != 'manual':
         flash('Spiele können nur für manuelle Turniere bearbeitet werden', 'error')

@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
-from app.models import User, Match, Bet, ScoringConfig, BettingPhaseLock
+from app.models import User, Match, Bet, ScoringConfig, BettingPhaseLock, Tournament, TournamentGroup, TournamentTeam, TournamentRound
 from app import db
 from app.services.scheduler import trigger_manual_sync
 from app.services.scoring import ScoringService

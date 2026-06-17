@@ -26,12 +26,14 @@ def create_app():
         from app.routes.main import main_bp
         from app.routes.bets import bets_bp
         from app.routes.admin import admin_bp
+        from app.routes.admin_tournaments import admin_tournaments_bp
         from app.routes.api import api_bp
         
         app.register_blueprint(auth_bp)
         app.register_blueprint(main_bp)
         app.register_blueprint(bets_bp)
         app.register_blueprint(admin_bp)
+        app.register_blueprint(admin_tournaments_bp)
         app.register_blueprint(api_bp, url_prefix='/api')
         
         # Initialize scheduler

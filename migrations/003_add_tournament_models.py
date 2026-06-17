@@ -179,7 +179,9 @@ def populate_wm2026(conn):
     
     # Insert knockout rounds
     for round_name, phase_key, order_idx in KNOCKOUT_ROUNDS:
-        round_type = 'knockout' if 'finale' in phase_key else 'special'
+        # All knockout rounds except 'Spiel um Platz 3' are regular knockout
+        # 'Spiel um Platz 3' is a special/consolation match
+        round_type = 'special' if 'platz 3' in round_name.lower() else 'knockout'
         cursor.execute("""
             INSERT INTO tournament_rounds (tournament_id, name, round_type, phase_key, order_index)
             VALUES (?, ?, ?, ?, ?)

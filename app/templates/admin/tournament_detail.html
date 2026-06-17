@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}{{ tournament.name }} - FamilyBet{% endblock %}
+
+{% block content %}
+<div class="space-y-4">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold">🏆 {{ tournament.name }}</h1>
+        <a href="{{ url_for('admin_tournaments.tournaments') }}" class="text-blue-600 hover:underline">← Alle Turniere</a>
+    </div>
+
+    <!-- Tournament Info -->
+    <div class="bg-white rounded-lg shadow-md p-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+                <span class="text-sm text-gray-600">Kurzname</span>
+                <div class="font-medium">{{ tournament.short_name }}</div>
+            </div>
+            <div>
+                <span class="text-sm text-gray-600">Saison</span>
+                <div class="font-medium">{{ tournament.season }}</div>
+            </div>
+            <div>
+                <span class="text-sm text-gray-600">Struktur</span>
+                <div class="font-medium">{{ tournament.num_groups }} Gruppen × {{ tournament.teams_per_group }} Teams</div>
+            </div>
+            <div>
+                <span class="text-sm text-gray-600">Status</span>
+                <div class="font-medium">
+                    {% if tournament.is_active %}
+                    <span class="text-green-600">✅ Aktiv</span>
+                    {% else %}
+                    <span class="text-gray-500">Inaktiv</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Groups Section -->
+    <div class="bg-white rounded-lg shadow-md p-4">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-bold">📊 Gruppen</h2>
+            <a href="{{ url_for('admin.setup_groups', tournament_id=tournament.id) }}" 
+               class="text-sm text-blue-600 hover:underline">
+                Gruppen konfigurieren
+            </a>
+        </div>
+
+        {% if groups %}
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {% for group in groups %}
+            <div class="border rounded-lg p-3">
+                <div class="font-semibold mb-2">{{ group.name }}</div>
+                {% if teams_by_group[group.id] %}
+                <ul class="text-sm space-y-1">
+                    {% for team in teams_by_group[group.id] %}
+                    <li class="text-gray-700">{{ team.team_name }}</li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-sm text-gray-400 italic">Noch keine Teams</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-500">Noch keine Gruppen erstellt.</p>
+        {% endif %}
+    </div>
+
+    <!-- Teams Assignment -->
+    <div class="bg-white rounded-lg shadow-md p-4">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-bold">👥 Teams zuweisen</h2>
+            <a href="{{ url_for('admin.assign_teams', tournament_id=tournament.id) }}" 
+               class="text-sm text-blue-600 hover:underline">
+                Teams bearbeiten
+            </a>
+        </div>
+        <p class="text-gray-600 text-sm">
+            Weisen Sie Teams den Gruppen zu oder bearbeiten Sie die Zuordnungen.
+        </p>
+    </div>
+
+    <!-- Rounds Section -->
+    {% if rounds %}
+    <div class="bg-white rounded-lg shadow-md p-4">
+        <h2 class="text-lg font-bold mb-4">🏁 Runden</h2>
+        <div class="flex flex-wrap gap-2">
+            {% for round in rounds %}
+            <span class="px-3 py-1 rounded text-sm 
+                {% if round.round_type == 'group' %}bg-blue-100 text-blue-800
+                {% elif round.round_type == 'knockout' %}bg-orange-100 text-orange-800
+                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                {{ round.name }}
+            </span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="flex gap-3">
+        {% if not tournament.is_active %}
+        <form method="POST" action="{{ url_for('admin_tournaments.activate_tournament', tournament_id=tournament.id) }}">
+            <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                Dieses Turnier aktivieren
+            </button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

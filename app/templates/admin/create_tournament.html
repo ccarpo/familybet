@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Turnier erstellen - FamilyBet{% endblock %}
+
+{% block content %}
+<div class="space-y-4">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold">🏆 Neues Turnier erstellen</h1>
+        <a href="{{ url_for('admin_tournaments.tournaments') }}" class="text-blue-600 hover:underline">← Zurück</a>
+    </div>
+
+    <form method="POST" class="bg-white rounded-lg shadow-md p-6 space-y-4 max-w-lg">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+            <input type="text" name="name" required 
+                   class="w-full border rounded px-3 py-2"
+                   placeholder="z.B. FIFA World Cup 2026">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Kurzname *</label>
+            <input type="text" name="short_name" required 
+                   class="w-full border rounded px-3 py-2"
+                   placeholder="z.B. wm2026">
+            <p class="text-xs text-gray-500 mt-1">Eindeutiger Identifikator, nur Kleinbuchstaben</p>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Saison/Jahr *</label>
+            <input type="number" name="season" required min="2020" max="2100"
+                   class="w-full border rounded px-3 py-2"
+                   placeholder="2026">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">OpenLigaDB Shortcut</label>
+            <input type="text" name="league_shortcut" 
+                   class="w-full border rounded px-3 py-2"
+                   placeholder="z.B. wm2026 (optional)">
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Anzahl Gruppen</label>
+                <input type="number" name="num_groups" value="12" min="1" max="32"
+                       class="w-full border rounded px-3 py-2">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Teams pro Gruppe</label>
+                <input type="number" name="teams_per_group" value="4" min="2" max="8"
+                       class="w-full border rounded px-3 py-2">
+            </div>
+        </div>
+
+        <div class="flex gap-3 pt-4">
+            <button type="submit" class="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+                Turnier erstellen
+            </button>
+            <a href="{{ url_for('admin_tournaments.tournaments') }}" 
+               class="px-4 py-2 border rounded hover:bg-gray-50">
+                Abbrechen
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

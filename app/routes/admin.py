@@ -200,7 +200,7 @@ def sync_apifootball():
 @admin_bp.route('/admin/edit-groups', methods=['GET', 'POST'])
 def edit_groups():
     """Manually edit group assignments - team based"""
-    from app.models import Match
+    from app.models import Match, Tournament, TournamentGroup, TournamentTeam
     from collections import defaultdict
     
     if request.method == 'POST':
@@ -247,7 +247,8 @@ def edit_groups():
                 
                 match_count = 0
                 for match in matches:
-                    if match.round_type == 'group' and match.round_name != new_group:
+                    # Update if round_type is 'group' or None (not yet set)
+                    if (match.round_type == 'group' or match.round_type is None) and match.round_name != new_group:
                         match.round_name = new_group
                         match_count += 1
                 
@@ -257,7 +258,6 @@ def edit_groups():
         return redirect(url_for('admin.edit_groups'))
     
     # Get active tournament
-    from app.models import Tournament, TournamentGroup, TournamentTeam
     active_tournament = Tournament.get_active()
     if not active_tournament:
         flash('Kein aktives Turnier vorhanden', 'error')

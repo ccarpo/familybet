@@ -108,11 +108,12 @@ class ScoringService:
                     match_ids = [m.id for m in Match.query.filter_by(
                         league_shortcut=league_shortcut
                     ).all()]
+                    bets = Bet.query.filter_by(user_id=user_id).filter(
+                        Bet.match_id.in_(match_ids)
+                    ).all()
                 else:
-                    match_ids = []
-                bets = Bet.query.filter_by(user_id=user_id).filter(
-                    Bet.match_id.in_(match_ids)
-                ).all()
+                    # No league_shortcut configured - return all user bets
+                    bets = Bet.query.filter_by(user_id=user_id).all()
             else:
                 bets = Bet.query.filter_by(user_id=user_id).all()
         else:

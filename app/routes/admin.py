@@ -431,6 +431,11 @@ def sync_matches():
         # Import matches (using existing logic from openligadb service)
         synced = _import_matches_from_provider(matches_data, league_shortcut, season)
         
+        # Update tournament stats from imported data (for OpenLigaDB)
+        if synced > 0 and active_tournament.provider_type == 'openligadb':
+            _update_tournament_stats_from_matches(active_tournament, matches_data)
+            flash(f'Turnier-Statistiken aktualisiert: {active_tournament.num_groups} Gruppen mit ~{active_tournament.teams_per_group} Teams', 'info')
+        
         flash(f'{synced} Spiele von {provider.provider_name} synchronisiert', 'success')
     except ValueError as e:
         flash(f'Provider-Fehler: {str(e)}', 'error')
@@ -451,6 +456,42 @@ def _import_matches_from_provider(matches_data, league_shortcut, season):
     service.get_match_data = lambda s, l: [m.to_dict() for m in matches_data]
     
     return service.sync_matches(league_shortcut, season)
+
+
+def _update_tournament_stats_from_matches(tournament, matches_data):
+    """
+    Update tournament stats (num_groups, teams_per_group) from imported matches.
+    This is called after OpenLigaDB sync to reflect actual data.
+    """
+    # Count unique group names from group stage matches
+    group_names = set()
+    teams_per_group_count = {}
+    
+    for match in matches_data:
+        round_type = match.round_type
+        round_name = match.round_name
+        
+        # Only consider group stage matches
+        if round_type == 'group' or (round_type is None and 'Gruppe' in round_name):
+            group_names.add(round_name)
+            
+            # Count teams per group
+            if round_name not in teams_per_group_count:
+                teams_per_group_count[round_name] = set()
+            teams_per_group_count[round_name].add(match.team1_name)
+            teams_per_group_count[round_name].add(match.team2_name)
+    
+    # Update tournament with actual stats
+    if group_names:
+        tournament.num_groups = len(group_names)
+        # Use max teams per group as reference
+        max_teams = max(len(teams) for teams in teams_per_group_count.values()) if teams_per_group_count else 4
+        tournament.teams_per_group = max_teams
+        
+        from app import db
+        db.session.commit()
+        
+        print(f"[Tournament Stats] Updated {tournament.name}: {len(group_names)} groups, ~{max_teams} teams/group")
 
 @admin_bp.route('/admin/recalculate', methods=['POST'])
 def recalculate_points():

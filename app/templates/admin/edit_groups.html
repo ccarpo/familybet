@@ -1,12 +1,27 @@
 {% extends "base.html" %}
 
-{% block title %}Gruppen bearbeiten - FamilyBet{% endblock %}
+{% block title %}Gruppen verwalten - FamilyBet{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
     <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold">📝 Gruppen bearbeiten (Team-basiert)</h1>
-        <a href="{{ url_for('admin.check_data') }}" class="text-blue-600 hover:underline">← Zurück</a>
+        <h1 class="text-2xl font-bold">🎯 Gruppen verwalten</h1>
+        <a href="{{ url_for('admin.index') }}" class="text-blue-600 hover:underline">← Zurück</a>
+    </div>
+    
+    <!-- Auto-Assign Button -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="font-semibold text-blue-900">Automatische Gruppen-Zuordnung</h2>
+                <p class="text-sm text-blue-700">Weist allen Spielen automatisch Gruppen zu basierend auf den Team-Zuweisungen im Turnier.</p>
+            </div>
+            <form method="POST" action="{{ url_for('admin.assign_groups') }}">
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    🔄 Auto-Zuordnen
+                </button>
+            </form>
+        </div>
     </div>
 
     <!-- Unassigned Teams -->
@@ -21,9 +36,8 @@
                 <span class="text-sm bg-white border rounded px-2 py-1">{{ team }}</span>
                 <select name="new_group" class="border rounded text-sm px-1 py-0.5" onchange="this.form.submit()">
                     <option value="">Gruppe...</option>
-                    {% for g in ['Gruppe A', 'Gruppe B', 'Gruppe C', 'Gruppe D', 'Gruppe E', 'Gruppe F',
-                                 'Gruppe G', 'Gruppe H', 'Gruppe I', 'Gruppe J', 'Gruppe K', 'Gruppe L'] %}
-                    <option value="{{ g }}">{{ g }}</option>
+                    {% for group_name in groups.keys()|sort %}
+                    <option value="{{ group_name }}">{{ group_name }}</option>
                     {% endfor %}
                 </select>
             </form>
@@ -34,8 +48,7 @@
 
     <!-- Groups Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {% for group_name in ['Gruppe A', 'Gruppe B', 'Gruppe C', 'Gruppe D', 'Gruppe E', 'Gruppe F',
-                              'Gruppe G', 'Gruppe H', 'Gruppe I', 'Gruppe J', 'Gruppe K', 'Gruppe L'] %}
+        {% for group_name in groups.keys()|sort %}
         {% set teams_in_group = groups.get(group_name, []) %}
         {% set matches_in_group = group_matches.get(group_name, []) %}
         

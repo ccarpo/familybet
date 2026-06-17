@@ -49,12 +49,6 @@
                 </button>
             </form>
             
-            <form method="POST" action="{{ url_for('admin.assign_groups') }}" class="inline">
-                <button type="submit" class="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700" title="Weist Spielen Gruppen zu basierend auf Tournament-Team-Zuweisungen">
-                    🎯 Gruppen zuordnen
-                </button>
-            </form>
-            
             <a href="{{ url_for('admin.check_data') }}" class="inline-block bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
                 Daten prüfen
             </a>
@@ -64,7 +58,7 @@
             </a>
             
             <a href="{{ url_for('admin.edit_groups') }}" class="inline-block bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700">
-                Gruppen bearbeiten
+                🎯 Gruppen verwalten
             </a>
 
             <a href="{{ url_for('admin.phase_locks') }}" class="inline-block bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">

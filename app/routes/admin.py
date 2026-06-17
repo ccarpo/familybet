@@ -168,7 +168,7 @@ def assign_groups():
     except Exception as e:
         flash(f'Fehler bei Gruppenzuordnung: {str(e)}', 'error')
     
-    return redirect(url_for('admin.check_data'))
+    return redirect(url_for('admin.edit_groups'))
 
 @admin_bp.route('/admin/check-data')
 def check_data():
@@ -374,8 +374,12 @@ def sync_matches():
 @admin_bp.route('/admin/recalculate', methods=['POST'])
 def recalculate_points():
     try:
-        ScoringService.recalculate_all_match_points()
-        flash('Punkte neu berechnet', 'success')
+        # Get active tournament for tournament-scoped recalculation
+        active_tournament = Tournament.get_active()
+        tournament_id = active_tournament.id if active_tournament else None
+        
+        ScoringService.recalculate_all_match_points(tournament_id=tournament_id)
+        flash('Match-Punkte neu berechnet' + (f' für {active_tournament.name}' if active_tournament else ''), 'success')
     except Exception as e:
         flash(f'Berechnung fehlgeschlagen: {str(e)}', 'error')
     

@@ -42,9 +42,8 @@
                 <label class="block text-sm font-medium mb-1">Weltmeister (10P)</label>
                 <select name="winner_team_id" required class="w-full border rounded px-3 py-2" onchange="document.getElementById('winner_name').value = this.options[this.selectedIndex].text">
                     <option value="">Wählen...</option>
-                    {% for match in matches %}
-                        <option value="{{ match.team1_id }}" {% if tournament_bet and tournament_bet.winner_team_id == match.team1_id %}selected{% endif %}>{{ match.team1_name }}</option>
-                        <option value="{{ match.team2_id }}" {% if tournament_bet and tournament_bet.winner_team_id == match.team2_id %}selected{% endif %}>{{ match.team2_name }}</option>
+                    {% for team_name, team_id in sorted_teams %}
+                        <option value="{{ team_id }}" {% if tournament_bet and tournament_bet.winner_team_id == team_id %}selected{% endif %}>{{ team_name }}</option>
                     {% endfor %}
                 </select>
                 <input type="hidden" name="winner_team_name" id="winner_name" value="{% if tournament_bet %}{{ tournament_bet.winner_team_name }}{% endif %}">
@@ -55,9 +54,8 @@
                     <label class="block text-sm font-medium mb-1">Halbfinalist 1 (5P)</label>
                     <select name="semifinalist1_id" required class="w-full border rounded px-2 py-2 text-sm" onchange="updateSFName(this, 'sf1_name')">
                         <option value="">...</option>
-                        {% for match in matches %}
-                            <option value="{{ match.team1_id }}" {% if tournament_bet and tournament_bet.semifinalist1_id == match.team1_id %}selected{% endif %}>{{ match.team1_name }}</option>
-                            <option value="{{ match.team2_id }}" {% if tournament_bet and tournament_bet.semifinalist1_id == match.team2_id %}selected{% endif %}>{{ match.team2_name }}</option>
+                        {% for team_name, team_id in sorted_teams %}
+                            <option value="{{ team_id }}" {% if tournament_bet and tournament_bet.semifinalist1_id == team_id %}selected{% endif %}>{{ team_name }}</option>
                         {% endfor %}
                     </select>
                     <input type="hidden" name="semifinalist1_name" id="sf1_name" value="{% if tournament_bet %}{{ tournament_bet.semifinalist1_name }}{% endif %}">
@@ -66,9 +64,8 @@
                     <label class="block text-sm font-medium mb-1">Halbfinalist 2 (5P)</label>
                     <select name="semifinalist2_id" required class="w-full border rounded px-2 py-2 text-sm" onchange="updateSFName(this, 'sf2_name')">
                         <option value="">...</option>
-                        {% for match in matches %}
-                            <option value="{{ match.team1_id }}" {% if tournament_bet and tournament_bet.semifinalist2_id == match.team1_id %}selected{% endif %}>{{ match.team1_name }}</option>
-                            <option value="{{ match.team2_id }}" {% if tournament_bet and tournament_bet.semifinalist2_id == match.team2_id %}selected{% endif %}>{{ match.team2_name }}</option>
+                        {% for team_name, team_id in sorted_teams %}
+                            <option value="{{ team_id }}" {% if tournament_bet and tournament_bet.semifinalist2_id == team_id %}selected{% endif %}>{{ team_name }}</option>
                         {% endfor %}
                     </select>
                     <input type="hidden" name="semifinalist2_name" id="sf2_name" value="{% if tournament_bet %}{{ tournament_bet.semifinalist2_name }}{% endif %}">
@@ -77,9 +74,8 @@
                     <label class="block text-sm font-medium mb-1">Halbfinalist 3 (5P)</label>
                     <select name="semifinalist3_id" required class="w-full border rounded px-2 py-2 text-sm" onchange="updateSFName(this, 'sf3_name')">
                         <option value="">...</option>
-                        {% for match in matches %}
-                            <option value="{{ match.team1_id }}" {% if tournament_bet and tournament_bet.semifinalist3_id == match.team1_id %}selected{% endif %}>{{ match.team1_name }}</option>
-                            <option value="{{ match.team2_id }}" {% if tournament_bet and tournament_bet.semifinalist3_id == match.team2_id %}selected{% endif %}>{{ match.team2_name }}</option>
+                        {% for team_name, team_id in sorted_teams %}
+                            <option value="{{ team_id }}" {% if tournament_bet and tournament_bet.semifinalist3_id == team_id %}selected{% endif %}>{{ team_name }}</option>
                         {% endfor %}
                     </select>
                     <input type="hidden" name="semifinalist3_name" id="sf3_name" value="{% if tournament_bet %}{{ tournament_bet.semifinalist3_name }}{% endif %}">

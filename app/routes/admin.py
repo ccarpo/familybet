@@ -254,11 +254,16 @@ def user_bets(user_id):
     # Get user's bets
     user_bets = {bet.match_id: bet for bet in Bet.query.filter_by(user_id=user_id).all()}
 
+    # Get sorted teams for tournament bet dropdown
+    from app.services.teams import get_sorted_unique_teams
+    sorted_teams = get_sorted_unique_teams()
+
     return render_template('admin/user_bets.html',
                           user=user,
                           target_user=target_user,
                           matches=all_matches,
-                          user_bets=user_bets)
+                          user_bets=user_bets,
+                          sorted_teams=sorted_teams)
 
 @admin_bp.route('/admin/users/<int:user_id>/toggle-visibility', methods=['POST'])
 def toggle_user_visibility(user_id):

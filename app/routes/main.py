@@ -166,13 +166,8 @@ def matches():
     my_bets = {bet.match_id: bet for bet in Bet.query.filter_by(user_id=user.id).all()}
 
     # Build deduplicated, sorted teams list for tournament bet dropdown
-    teams_dict = {}
-    for match in all_matches:
-        if match.team1_name and match.team1_name not in ('TBD', 'TBA', '-'):
-            teams_dict[match.team1_name] = match.team1_id
-        if match.team2_name and match.team2_name not in ('TBD', 'TBA', '-'):
-            teams_dict[match.team2_name] = match.team2_id
-    sorted_teams = sorted(teams_dict.items(), key=lambda x: x[0])
+    from app.services.teams import get_sorted_unique_teams
+    sorted_teams = get_sorted_unique_teams()
 
     # Get phase locks for display
     phase_locks = BettingPhaseLock.get_all_locks()

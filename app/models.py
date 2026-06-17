@@ -65,6 +65,7 @@ class Match(db.Model):
     # Match details
     match_date = db.Column(db.DateTime, nullable=False)
     match_date_utc = db.Column(db.DateTime, nullable=True)
+    location = db.Column(db.String(200), nullable=True)  # Stadium/venue
     
     # Results
     team1_score = db.Column(db.Integer, nullable=True)

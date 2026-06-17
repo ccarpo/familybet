@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Spiel hinzufügen - {{ tournament.name }} - FamilyBet Admin{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-4">
+        <a href="{{ url_for('admin_tournaments.tournament_detail', tournament_id=tournament.id) }}" 
+           class="text-blue-600 hover:underline">← Zurück zum Turnier</a>
+    </div>
+
+    <h1 class="text-2xl font-bold mb-6">➕ Spiel hinzufügen - {{ tournament.name }}</h1>
+
+    <form method="POST" class="bg-white rounded-lg shadow-md p-6 space-y-4">
+        
+        <!-- Teams -->
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Team 1</label>
+                <select name="team1_name" class="w-full border rounded px-3 py-2" required>
+                    <option value="">Team wählen...</option>
+                    {% for team in teams %}
+                    <option value="{{ team.team_name }}">{{ team.team_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Team 2</label>
+                <select name="team2_name" class="w-full border rounded px-3 py-2" required>
+                    <option value="">Team wählen...</option>
+                    {% for team in teams %}
+                    <option value="{{ team.team_name }}">{{ team.team_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Round/Phase -->
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Runde/Phase</label>
+                <select name="round_name" class="w-full border rounded px-3 py-2" required>
+                    <option value="">Runde wählen...</option>
+                    {% for group in groups %}
+                    <option value="{{ group.name }}">{{ group.name }} (Gruppe)</option>
+                    {% endfor %}
+                    <option value="Achtelfinale">Achtelfinale</option>
+                    <option value="Viertelfinale">Viertelfinale</option>
+                    <option value="Halbfinale">Halbfinale</option>
+                    <option value="Finale">Finale</option>
+                    <option value="Spiel um Platz 3">Spiel um Platz 3</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Rundentyp</label>
+                <select name="round_type" class="w-full border rounded px-3 py-2">
+                    <option value="group">Gruppenphase</option>
+                    <option value="knockout" selected>K.O.-Runde</option>
+                    <option value="special">Spezial</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Date & Time -->
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Datum</label>
+                <input type="date" name="match_date" 
+                       class="w-full border rounded px-3 py-2" required>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Uhrzeit</label>
+                <input type="time" name="match_time" 
+                       class="w-full border rounded px-3 py-2">
+            </div>
+        </div>
+
+        <!-- Location -->
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Ort/Stadion (optional)</label>
+            <input type="text" name="location" 
+                   class="w-full border rounded px-3 py-2"
+                   placeholder="z.B. Olympiastadion Berlin">
+        </div>
+
+        <!-- Submit -->
+        <div class="flex gap-3 pt-4">
+            <button type="submit" class="flex-1 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                Spiel erstellen
+            </button>
+            <a href="{{ url_for('admin_tournaments.tournament_detail', tournament_id=tournament.id) }}" 
+               class="px-4 py-2 border rounded hover:bg-gray-100">
+                Abbrechen
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

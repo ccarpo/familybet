@@ -83,6 +83,52 @@
         </p>
     </div>
 
+    <!-- Matches Management (for manual tournaments) -->
+    {% if tournament.provider_type == 'manual' %}
+    <div class="bg-white rounded-lg shadow-md p-4">
+        <h2 class="text-lg font-bold mb-4">⚽ Spiele verwalten</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Generate Group Matches -->
+            <div class="border rounded-lg p-4">
+                <h3 class="font-semibold mb-2">Gruppenspiele generieren</h3>
+                <p class="text-sm text-gray-600 mb-3">
+                    Erstellt automatisch alle Gruppenspiele (jeder gegen jeden) für alle Gruppen mit zugewiesenen Teams.
+                </p>
+                <form method="POST" action="{{ url_for('admin_tournaments.generate_group_matches', tournament_id=tournament.id) }}">
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full">
+                        🔄 Alle Gruppenspiele generieren
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Add Single Match -->
+            <div class="border rounded-lg p-4">
+                <h3 class="font-semibold mb-2">Einzelnes Spiel hinzufügen</h3>
+                <p class="text-sm text-gray-600 mb-3">
+                    Fügt ein einzelnes Spiel manuell hinzu (z.B. für K.O.-Runde oder spezielle Spiele).
+                </p>
+                <a href="{{ url_for('admin_tournaments.add_manual_match', tournament_id=tournament.id) }}" 
+                   class="block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-center">
+                    ➕ Spiel manuell erstellen
+                </a>
+            </div>
+        </div>
+        
+        {% if matches %}
+        <div class="mt-4">
+            <h3 class="font-semibold mb-2">Vorhandene Spiele</h3>
+            <div class="text-sm text-gray-600">
+                {{ matches|length }} Spiele erstellt
+                <a href="{{ url_for('admin.edit_groups') }}" class="text-blue-600 hover:underline ml-2">
+                    Spiele bearbeiten →
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
     <!-- Rounds Section -->
     {% if rounds %}
     <div class="bg-white rounded-lg shadow-md p-4">

@@ -53,8 +53,13 @@ def dashboard():
         last_query = last_query.filter_by(league_shortcut=league_shortcut)
     last_matches = last_query.order_by(Match.match_date.desc()).limit(5).all()
 
-    # Get user's recent bets
-    my_bets = Bet.query.filter_by(user_id=user.id).order_by(Bet.created_at.desc()).limit(5).all()
+    # Get user's recent bets (filtered by tournament)
+    if league_shortcut:
+        # Only bets for this tournament's matches
+        recent_match_ids = [m.id for m in Match.query.filter_by(league_shortcut=league_shortcut).order_by(Match.match_date.desc()).limit(20).all()]
+        my_bets = Bet.query.filter_by(user_id=user.id).filter(Bet.match_id.in_(recent_match_ids)).order_by(Bet.created_at.desc()).limit(5).all() if recent_match_ids else []
+    else:
+        my_bets = Bet.query.filter_by(user_id=user.id).order_by(Bet.created_at.desc()).limit(5).all()
 
     # Get tournament bet
     tournament_bet = TournamentBet.query.filter_by(user_id=user.id).first()
@@ -79,15 +84,22 @@ def dashboard():
                 all_bets_for_display[bet.match_id] = {}
             all_bets_for_display[bet.match_id][bet.user_id] = bet
 
-    # Get points history data for chart
+    # Get points history data for chart (filtered by active tournament)
     # All finished matches in chronological order
-    all_finished_matches = Match.query.filter_by(is_finished=True).order_by(Match.match_date).all()
+    history_query = Match.query.filter_by(is_finished=True)
+    if league_shortcut:
+        history_query = history_query.filter_by(league_shortcut=league_shortcut)
+    all_finished_matches = history_query.order_by(Match.match_date).all()
 
-    # Get all bets for finished matches
+    # Get all bets for finished matches (filtered by tournament)
     finished_match_ids = [m.id for m in all_finished_matches]
     all_bets_history = {}
     if finished_match_ids:
-        bets_query = Bet.query.filter(Bet.match_id.in_(finished_match_ids)).all()
+        if league_shortcut:
+            # Only get bets for this tournament's matches
+            bets_query = Bet.query.filter(Bet.match_id.in_(finished_match_ids)).all()
+        else:
+            bets_query = Bet.query.all()
         for bet in bets_query:
             if bet.match_id not in all_bets_history:
                 all_bets_history[bet.match_id] = {}
@@ -385,14 +397,14 @@ def groups():
                     data['teams'][t1]['points'] += 1
                     data['teams'][t2]['points'] += 1
 
-    # Get user bets
-    my_bets = {bet.match_id: bet for bet in Bet.query.filter_by(user_id=user.id).all()}
+    # Get user bets (filtered by tournament group matches)
+    group_match_ids = [m.id for m in group_matches]
+    my_bets = {bet.match_id: bet for bet in Bet.query.filter_by(user_id=user.id).filter(Bet.match_id.in_(group_match_ids)).all()} if group_match_ids else {}
 
     # Get all users for displaying their bets (include all for now, template filters hidden)
     all_users = get_sorted_users(include_hidden=True)
 
     # Get all bets for group matches (for displaying other users' bets)
-    group_match_ids = [m.id for m in group_matches]
     all_bets = Bet.query.filter(Bet.match_id.in_(group_match_ids)).all()
 
     # Organize bets by match_id and user_id

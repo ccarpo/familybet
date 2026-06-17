@@ -155,7 +155,7 @@
                                     <th class="px-2 py-1 text-left font-medium text-gray-600 sticky left-0 bg-gray-100">Spiel</th>
                                     {% for u in all_users %}
                                     <th class="px-2 py-1 text-center font-medium {% if u.id == user.id %}text-blue-600 bg-blue-50{% else %}text-gray-600{% endif %}">
-                                        {{ u.username }}
+                                        {{ u.name }}
                                     </th>
                                     {% endfor %}
                                 </tr>

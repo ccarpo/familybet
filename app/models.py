@@ -321,3 +321,98 @@ class BettingPhaseLock(db.Model):
 
     def __repr__(self):
         return f'<BettingPhaseLock {self.phase_name}: {"locked" if self.is_locked else "open"}>'
+
+
+class Tournament(db.Model):
+    """Represents a tournament instance (e.g., WM2026, Euro2024)."""
+    __tablename__ = 'tournaments'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)  # "FIFA World Cup 2026"
+    short_name = db.Column(db.String(50), nullable=False, unique=True)  # "wm2026"
+    season = db.Column(db.Integer, nullable=False)  # 2026
+    is_active = db.Column(db.Boolean, default=False)
+    league_shortcut = db.Column(db.String(50))  # OpenLigaDB identifier
+    
+    # Tournament structure config
+    num_groups = db.Column(db.Integer, default=12)
+    teams_per_group = db.Column(db.Integer, default=4)
+    has_knockout_stage = db.Column(db.Boolean, default=True)
+    
+    # Metadata
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    groups = db.relationship('TournamentGroup', backref='tournament', lazy=True, cascade='all, delete-orphan')
+    teams = db.relationship('TournamentTeam', backref='tournament', lazy=True, cascade='all, delete-orphan')
+    rounds = db.relationship('TournamentRound', backref='tournament', lazy=True, cascade='all, delete-orphan')
+    
+    def __repr__(self):
+        return f'<Tournament {self.short_name}>'
+    
+    @classmethod
+    def get_active(cls):
+        """Get the currently active tournament."""
+        return cls.query.filter_by(is_active=True).first()
+    
+    @classmethod
+    def set_active(cls, tournament_id):
+        """Set a tournament as active, deactivate others."""
+        # Deactivate all
+        cls.query.update({'is_active': False})
+        # Activate the selected one
+        tournament = cls.query.get(tournament_id)
+        if tournament:
+            tournament.is_active = True
+            db.session.commit()
+        return tournament
+
+
+class TournamentGroup(db.Model):
+    """Groups within a tournament (A, B, C...)."""
+    __tablename__ = 'tournament_groups'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    tournament_id = db.Column(db.Integer, db.ForeignKey('tournaments.id'), nullable=False)
+    name = db.Column(db.String(50), nullable=False)  # "Gruppe A" or "Group A"
+    code = db.Column(db.String(10), nullable=False)  # "A"
+    order_index = db.Column(db.Integer, default=0)
+    
+    # Relationships
+    teams = db.relationship('TournamentTeam', backref='group', lazy=True)
+    
+    def __repr__(self):
+        return f'<TournamentGroup {self.name}>'
+
+
+class TournamentTeam(db.Model):
+    """Teams assigned to groups in a tournament."""
+    __tablename__ = 'tournament_teams'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    tournament_id = db.Column(db.Integer, db.ForeignKey('tournaments.id'), nullable=False)
+    group_id = db.Column(db.Integer, db.ForeignKey('tournament_groups.id'), nullable=True)
+    team_name = db.Column(db.String(100), nullable=False)
+    team_id = db.Column(db.Integer, nullable=True)  # External API ID
+    
+    # Track if team qualifies for knockout (top 2 or best 3rd)
+    qualified_position = db.Column(db.Integer, nullable=True)  # 1, 2, or 3
+    
+    def __repr__(self):
+        return f'<TournamentTeam {self.team_name} ({self.tournament.short_name})>'
+
+
+class TournamentRound(db.Model):
+    """Configurable rounds/phases (group stage, knockout rounds)."""
+    __tablename__ = 'tournament_rounds'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    tournament_id = db.Column(db.Integer, db.ForeignKey('tournaments.id'), nullable=False)
+    name = db.Column(db.String(100), nullable=False)  # "Gruppe A", "Achtelfinale"
+    round_type = db.Column(db.String(20), nullable=False)  # 'group', 'knockout', 'special'
+    phase_key = db.Column(db.String(50))  # 'gruppenphase', 'achtelfinale' (for locking)
+    order_index = db.Column(db.Integer, default=0)
+    
+    def __repr__(self):
+        return f'<TournamentRound {self.name} ({self.round_type})>'

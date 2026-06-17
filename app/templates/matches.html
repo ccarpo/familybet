@@ -140,15 +140,133 @@
         {% endif %}
     {% endif %}
 
-    <!-- Link to Group Phase -->
+    <!-- Group Phase Quick Bets (with tabbing support) -->
     {% if 'Gruppe' in rounds.keys()|join(' ') %}
-    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
-        <h2 class="text-xl font-bold text-blue-800 mb-2">📊 Gruppenphase</h2>
-        <p class="text-gray-600 mb-4">Tippe jetzt die Gruppenspiele mit Tabellenübersicht</p>
-        <a href="{{ url_for('main.groups') }}" class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold">
-            → Zur Gruppenphase
-        </a>
-    </div>
+    {% set group_locked = phase_locks.gruppenphase.is_locked %}
+    {% if not group_locked %}
+    <form method="POST" action="{{ url_for('bets.place_batch_bets') }}" id="batch-bets-form">
+    {% endif %}
+        <div class="bg-white rounded-lg shadow-md p-3">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-lg font-bold text-blue-800">📊 Gruppenphase - Schnelltipps</h2>
+                <a href="{{ url_for('main.groups') }}" class="text-sm text-blue-600 hover:underline">Details →</a>
+            </div>
+
+            {% if group_locked %}
+            <div class="bg-red-50 border-l-4 border-red-500 p-3 rounded">
+                <p class="text-red-800 font-semibold text-sm">🔒 Die Gruppenphase ist gesperrt. Tipps können nicht mehr abgegeben oder geändert werden.</p>
+            </div>
+            {% endif %}
+
+            <div class="space-y-1 max-h-96 overflow-y-auto">
+                {% for round_name, matches in rounds.items() %}
+                    {% if 'Gruppe' in round_name %}
+                        {% set group_class = {'Gruppe A': 'bg-red-100 text-red-800', 'Gruppe B': 'bg-orange-100 text-orange-800', 'Gruppe C': 'bg-yellow-100 text-yellow-800', 'Gruppe D': 'bg-green-100 text-green-800', 'Gruppe E': 'bg-teal-100 text-teal-800', 'Gruppe F': 'bg-blue-100 text-blue-800', 'Gruppe G': 'bg-indigo-100 text-indigo-800', 'Gruppe H': 'bg-purple-100 text-purple-800', 'Gruppe I': 'bg-pink-100 text-pink-800', 'Gruppe J': 'bg-rose-100 text-rose-800', 'Gruppe K': 'bg-cyan-100 text-cyan-800', 'Gruppe L': 'bg-emerald-100 text-emerald-800'}.get(round_name, 'bg-gray-100 text-gray-800') %}
+                        {% for match in matches %}
+                        <div class="match-card flex items-center gap-2 p-2 rounded border text-sm {% if match.is_finished %}bg-gray-50{% elif match.has_started() %}bg-yellow-50{% else %}bg-white{% endif %}">
+                            <!-- Group Badge -->
+                            <span class="px-2 py-1 rounded text-xs font-bold whitespace-nowrap {{ group_class }}">
+                                {{ round_name|replace('Gruppe ', '') }}
+                            </span>
+
+                            <!-- Teams & Score (compact) -->
+                            <div class="flex-1 flex items-center justify-between min-w-0">
+                                <div class="flex items-center gap-2 truncate">
+                                    <span class="font-medium truncate">{{ match.team1_name }}</span>
+                                    <span class="text-gray-400">vs</span>
+                                    <span class="font-medium truncate">{{ match.team2_name }}</span>
+                                </div>
+
+                                <div class="flex items-center gap-3">
+                                    <!-- Result -->
+                                    {% if match.is_finished %}
+                                    <span class="font-bold text-lg">{{ match.team1_score }}:{{ match.team2_score }}</span>
+                                    {% elif match.has_started() %}
+                                    <span class="text-xs text-yellow-600 font-semibold">LIVE</span>
+                                    {% endif %}
+
+                                    <!-- Bet Info -->
+                                    {% if match.id in my_bets %}
+                                        {% set bet = my_bets[match.id] %}
+                                        <div class="flex items-center gap-1 text-xs">
+                                            <span class="text-blue-600">{{ bet.team1_score_pred }}:{{ bet.team2_score_pred }}</span>
+                                            {% if match.is_finished %}
+                                                {% if bet.points_earned > 0 %}
+                                                <span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold">+{{ bet.points_earned }}P</span>
+                                                {% else %}
+                                                <span class="bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold">0P</span>
+                                                {% endif %}
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+
+                                    <!-- Quick Bet Input (only if not locked and not started) -->
+                                    {% if not group_locked and not match.is_finished and not match.has_started() %}
+                                        {% set my_bet = my_bets.get(match.id) %}
+                                        <div class="flex items-center gap-1">
+                                            <input type="number" name="bets" min="0"
+                                                   value="{% if my_bet %}{{ my_bet.team1_score_pred }}{% endif %}"
+                                                   class="w-10 text-center text-sm border rounded py-0.5 focus:ring-1 focus:ring-blue-500"
+                                                   placeholder="-"
+                                                   onchange="addBet(this, {{ match.id }}, 1)">
+                                            <span class="text-gray-400">:</span>
+                                            <input type="number" name="bets" min="0"
+                                                   value="{% if my_bet %}{{ my_bet.team2_score_pred }}{% endif %}"
+                                                   class="w-10 text-center text-sm border rounded py-0.5 focus:ring-1 focus:ring-blue-500"
+                                                   placeholder="-"
+                                                   onchange="addBet(this, {{ match.id }}, 2)">
+                                        </div>
+                                        <input type="hidden" name="bets" id="bet_{{ match.id }}" value="">
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Time -->
+                            <span class="text-xs text-gray-500 whitespace-nowrap">{{ match.match_date.strftime('%d.%m %H:%M') }}</span>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+
+        {% if not group_locked %}
+        <!-- Submit Button -->
+        <div class="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-64 z-50">
+            <button type="submit"
+                    class="w-full bg-green-600 text-white py-3 px-6 rounded-lg shadow-lg hover:bg-green-700 font-bold text-lg">
+                💾 Tipps speichern
+            </button>
+        </div>
+    </form>
+
+    <script>
+    // Collect bets for batch submission
+    const batchBets = {};
+    function addBet(input, matchId, team) {
+        if (!batchBets[matchId]) {
+            batchBets[matchId] = { matchId: matchId, score1: '', score2: '' };
+        }
+        if (team === 1) {
+            batchBets[matchId].score1 = input.value;
+        } else {
+            batchBets[matchId].score2 = input.value;
+        }
+        // Update hidden input
+        const hidden = document.getElementById('bet_' + matchId);
+        if (hidden) {
+            hidden.value = matchId + ',' + batchBets[matchId].score1 + ',' + batchBets[matchId].score2;
+        }
+    }
+
+    // Auto-save indicator
+    document.getElementById('batch-bets-form').addEventListener('submit', function() {
+        const btn = this.querySelector('button[type="submit"]');
+        btn.textContent = '💾 Speichern...';
+        btn.disabled = true;
+    });
+    </script>
+    {% endif %}
     {% endif %}
 </div>
 

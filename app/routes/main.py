@@ -280,6 +280,20 @@ def groups():
     # Get user bets
     my_bets = {bet.match_id: bet for bet in Bet.query.filter_by(user_id=user.id).all()}
 
+    # Get all users for displaying their bets
+    all_users = User.query.filter_by(is_active=True).order_by(User.first_name).all()
+
+    # Get all bets for group matches (for displaying other users' bets)
+    group_match_ids = [m.id for m in group_matches]
+    all_bets = Bet.query.filter(Bet.match_id.in_(group_match_ids)).all()
+
+    # Organize bets by match_id and user_id
+    bets_by_match = {}
+    for bet in all_bets:
+        if bet.match_id not in bets_by_match:
+            bets_by_match[bet.match_id] = {}
+        bets_by_match[bet.match_id][bet.user_id] = bet
+
     # Get phase locks
     phase_locks = BettingPhaseLock.get_all_locks()
 
@@ -287,7 +301,9 @@ def groups():
                           groups_data=groups_data,
                           my_bets=my_bets,
                           user=user,
-                          phase_locks=phase_locks)
+                          phase_locks=phase_locks,
+                          all_users=all_users,
+                          bets_by_match=bets_by_match)
 
 
 @main_bp.route('/round/last16')

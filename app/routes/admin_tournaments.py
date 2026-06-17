@@ -359,7 +359,6 @@ def edit_match(match_id):
     if request.method == 'POST':
         match_date_str = request.form.get('match_date')
         match_time_str = request.form.get('match_time')
-        location = request.form.get('location', '')
         
         try:
             if match_date_str:
@@ -371,7 +370,6 @@ def edit_match(match_id):
                     new_date = new_date.replace(hour=match.match_date.hour, minute=match.match_date.minute)
                 match.match_date = new_date
             
-            match.location = location
             db.session.commit()
             
             flash(f'Spiel aktualisiert: {match.team1_name} vs {match.team2_name}', 'success')

@@ -68,6 +68,71 @@ def dashboard():
                 all_bets_for_display[bet.match_id] = {}
             all_bets_for_display[bet.match_id][bet.user_id] = bet
 
+    # Get points history data for chart
+    # All finished matches in chronological order
+    all_finished_matches = Match.query.filter_by(is_finished=True).order_by(Match.match_date).all()
+
+    # Get all bets for finished matches
+    finished_match_ids = [m.id for m in all_finished_matches]
+    all_bets_history = {}
+    if finished_match_ids:
+        bets_query = Bet.query.filter(Bet.match_id.in_(finished_match_ids)).all()
+        for bet in bets_query:
+            if bet.match_id not in all_bets_history:
+                all_bets_history[bet.match_id] = {}
+            all_bets_history[bet.match_id][bet.user_id] = bet
+
+    # Calculate cumulative points for each user after each match
+    points_history = {}
+    for u in all_users:
+        points_history[u.id] = {
+            'name': u.name,
+            'data': [],
+            'cumulative': 0
+        }
+
+    chart_labels = []
+    for match in all_finished_matches:
+        # Short label: "Gruppe A: Mex vs Süd"
+        short_team1 = match.team1_name[:3] if len(match.team1_name) > 3 else match.team1_name
+        short_team2 = match.team2_name[:3] if len(match.team2_name) > 3 else match.team2_name
+        label = f"{match.round_name[:7]}: {short_team1} vs {short_team2}"
+        chart_labels.append(label)
+
+        for u in all_users:
+            match_points = 0
+            if match.id in all_bets_history and u.id in all_bets_history[match.id]:
+                match_points = all_bets_history[match.id][u.id].points_earned or 0
+
+            points_history[u.id]['cumulative'] += match_points
+            points_history[u.id]['data'].append(points_history[u.id]['cumulative'])
+
+    # Prepare chart data for template
+    chart_data = {
+        'labels': chart_labels,
+        'datasets': []
+    }
+
+    import random
+    colors = [
+        '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899',
+        '#06B6D4', '#84CC16', '#F97316', '#6366F1', '#14B8A6', '#D946EF'
+    ]
+
+    for idx, u in enumerate(all_users):
+        color = colors[idx % len(colors)]
+        chart_data['datasets'].append({
+            'label': u.name,
+            'data': points_history[u.id]['data'],
+            'borderColor': color,
+            'backgroundColor': color + '20',  # Add transparency
+            'tension': 0.3,
+            'pointRadius': 3,
+            'pointHoverRadius': 5,
+            'borderWidth': 2,
+            'fill': False
+        })
+
     return render_template('dashboard.html',
                           user=user,
                           upcoming_matches=upcoming,
@@ -78,7 +143,8 @@ def dashboard():
                           my_rank=my_rank,
                           all_users=all_users,
                           all_bets=all_bets_for_display,
-                          now=now)
+                          now=now,
+                          chart_data=chart_data)
 
 @main_bp.route('/matches')
 def matches():

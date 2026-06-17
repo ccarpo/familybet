@@ -245,5 +245,96 @@
         <p class="text-gray-500 text-sm">Noch keine Tipps abgegeben.</p>
         {% endif %}
     </div>
+
+    <!-- Points History Chart -->
+    {% if chart_data.labels %}
+    <div class="bg-white rounded-lg shadow-md p-4">
+        <h2 class="text-lg font-bold mb-3">📈 Punkte-Verlauf</h2>
+        <div class="relative h-64 md:h-80">
+            <canvas id="pointsChart"></canvas>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('pointsChart').getContext('2d');
+        const chartData = {{ chart_data | tojson }};
+
+        // Highlight current user's dataset
+        chartData.datasets.forEach(function(dataset) {
+            if (dataset.label === '{{ user.name }}') {
+                dataset.borderWidth = 4;
+                dataset.pointRadius = 5;
+                dataset.pointHoverRadius = 7;
+            }
+        });
+
+        new Chart(ctx, {
+            type: 'line',
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            boxWidth: 12,
+                            usePointStyle: true,
+                            font: {
+                                size: 11
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        titleColor: '#1f2937',
+                        bodyColor: '#1f2937',
+                        borderColor: '#e5e7eb',
+                        borderWidth: 1,
+                        callbacks: {
+                            title: function(context) {
+                                return context[0].label;
+                            },
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y + ' Punkte';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45,
+                            font: {
+                                size: 9
+                            }
+                        },
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Punkte'
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    }
+                }
+            }
+        });
+    });
+    </script>
+    {% endif %}
 </div>
 {% endblock %}

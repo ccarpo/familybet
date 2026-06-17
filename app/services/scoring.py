@@ -19,8 +19,10 @@ class ScoringService:
         # Filter by tournament if specified
         if tournament_id:
             tournament = Tournament.query.get(tournament_id)
-            if tournament and tournament.league_shortcut:
-                query = query.filter_by(league_shortcut=tournament.league_shortcut)
+            if tournament:
+                league_shortcut = tournament.get_league_shortcut()
+                if league_shortcut:
+                    query = query.filter_by(league_shortcut=league_shortcut)
         
         finished_matches = query.all()
         
@@ -99,11 +101,15 @@ class ScoringService:
         if tournament_id:
             # Get tournament for league_shortcut
             tournament = Tournament.query.get(tournament_id)
-            if tournament and tournament.league_shortcut:
+            if tournament:
                 # Filter bets to matches of this tournament
-                match_ids = [m.id for m in Match.query.filter_by(
-                    league_shortcut=tournament.league_shortcut
-                ).all()]
+                league_shortcut = tournament.get_league_shortcut()
+                if league_shortcut:
+                    match_ids = [m.id for m in Match.query.filter_by(
+                        league_shortcut=league_shortcut
+                    ).all()]
+                else:
+                    match_ids = []
                 bets = Bet.query.filter_by(user_id=user_id).filter(
                     Bet.match_id.in_(match_ids)
                 ).all()

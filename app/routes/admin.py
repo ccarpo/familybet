@@ -144,9 +144,10 @@ def assign_groups():
                 team_to_group[tt.team_name] = tt.group.name
         
         # Get all matches for this tournament's league
-        if active_tournament.league_shortcut:
+        league_shortcut = active_tournament.get_league_shortcut()
+        if league_shortcut:
             matches = Match.query.filter_by(
-                league_shortcut=active_tournament.league_shortcut
+                league_shortcut=league_shortcut
             ).all()
         else:
             matches = Match.query.all()
@@ -304,11 +305,12 @@ def edit_groups():
     
     # Get matches for each group from Match table
     group_matches = {}
+    league_shortcut = active_tournament.get_league_shortcut()
     for group in tournament_groups:
-        if active_tournament.league_shortcut:
+        if league_shortcut:
             group_matches[group.name] = Match.query.filter_by(
                 round_name=group.name,
-                league_shortcut=active_tournament.league_shortcut
+                league_shortcut=league_shortcut
             ).order_by(Match.match_date).all()
         else:
             group_matches[group.name] = Match.query.filter_by(
@@ -440,10 +442,10 @@ def sync_matches():
 
 def _import_matches_from_provider(matches_data, league_shortcut, season):
     """Import matches from provider data into database."""
-    from app.services.openligadb import OpenLigaDBService
+    from app.services.openligadb import OpenLigaDBClient
     
     # Reuse existing sync logic
-    service = OpenLigaDBService(league_shortcut=league_shortcut, season=season)
+    service = OpenLigaDBClient()
     
     # Override fetch to use our already-fetched data
     service.get_match_data = lambda s, l: [m.to_dict() for m in matches_data]

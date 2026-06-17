@@ -14,11 +14,13 @@ class User(db.Model):
     is_hidden_from_leaderboard = db.Column(db.Boolean, default=False)
     magic_token = db.Column(db.String(64), unique=True, nullable=True)
     token_expires_at = db.Column(db.DateTime, nullable=True)
+    selected_tournament_id = db.Column(db.Integer, db.ForeignKey('tournaments.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
     bets = db.relationship('Bet', backref='user', lazy=True, cascade='all, delete-orphan')
     tournament_bet = db.relationship('TournamentBet', backref='user', lazy=True, uselist=False, cascade='all, delete-orphan')
+    selected_tournament = db.relationship('Tournament', foreign_keys=[selected_tournament_id])
     
     def generate_magic_token(self):
         self.magic_token = secrets.token_urlsafe(32)

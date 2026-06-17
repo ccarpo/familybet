@@ -40,6 +40,28 @@ def create_app():
         from app.services.scheduler import init_scheduler
         init_scheduler(app)
         
+        # Context processor for tournament globals
+        @app.context_processor
+        def inject_tournament_globals():
+            from flask import session
+            from app.models import Tournament, User
+            
+            context = {
+                'active_tournaments': Tournament.query.filter_by(is_active=True).order_by(Tournament.name).all()
+            }
+            
+            # Get user's selected tournament
+            if session.get('user_id'):
+                user = User.query.get(session['user_id'])
+                if user and user.selected_tournament_id:
+                    context['user_selected_tournament'] = user.selected_tournament
+                else:
+                    # Default to first active tournament
+                    active = Tournament.query.filter_by(is_active=True).first()
+                    context['user_selected_tournament'] = active
+            
+            return context
+        
         # Initial data sync
         try:
             from app.services.openligadb import OpenLigaDBClient

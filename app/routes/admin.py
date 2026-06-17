@@ -36,9 +36,13 @@ def index():
     from app.services.users import get_sorted_users
     users = get_sorted_users(include_hidden=True)
     
-    # Get current scoring config (for active tournament if any)
+    # Get current user's selected tournament for scoring config
     from app.models import Tournament
-    active_tournament = Tournament.get_active()
+    user = get_current_user()
+    if user and user.selected_tournament_id:
+        active_tournament = Tournament.query.get(user.selected_tournament_id)
+    else:
+        active_tournament = Tournament.query.filter_by(is_active=True).first()
     scoring_config = ScoringConfig.get_current(
         tournament_id=active_tournament.id if active_tournament else None
     )
@@ -69,9 +73,13 @@ def update_scoring():
             flash('Punkte können nicht negativ sein', 'error')
             return redirect(url_for('admin.index'))
         
-        # Get active tournament for tournament-specific config
+        # Get current user's selected tournament for scoring config
         from app.models import Tournament
-        active_tournament = Tournament.get_active()
+        user = get_current_user()
+        if user and user.selected_tournament_id:
+            active_tournament = Tournament.query.get(user.selected_tournament_id)
+        else:
+            active_tournament = Tournament.query.filter_by(is_active=True).first()
         tournament_id = active_tournament.id if active_tournament else None
         
         # Create new config for this tournament with extra points
@@ -124,10 +132,15 @@ def add_user():
 def assign_groups():
     """Assign teams to matches based on Tournament data"""
     from app.models import Tournament, TournamentGroup, TournamentTeam, Match
+    from app.services.users import get_current_user
     
     try:
-        # Get active tournament
-        active_tournament = Tournament.get_active()
+        # Get user's selected tournament
+        user = get_current_user()
+        if user and user.selected_tournament_id:
+            active_tournament = Tournament.query.get(user.selected_tournament_id)
+        else:
+            active_tournament = Tournament.query.filter_by(is_active=True).first()
         if not active_tournament:
             flash('Kein aktives Turnier vorhanden', 'error')
             return redirect(url_for('admin.check_data'))
@@ -213,8 +226,12 @@ def edit_groups():
             new_group = request.form.get('new_group', '').strip()
             
             if team_name and new_group:
-                # Get active tournament
-                active_tournament = Tournament.get_active()
+                # Get user's selected tournament
+                user = get_current_user()
+                if user and user.selected_tournament_id:
+                    active_tournament = Tournament.query.get(user.selected_tournament_id)
+                else:
+                    active_tournament = Tournament.query.filter_by(is_active=True).first()
                 if not active_tournament:
                     flash('Kein aktives Turnier vorhanden', 'error')
                     return redirect(url_for('admin.edit_groups'))
@@ -260,8 +277,12 @@ def edit_groups():
         
         return redirect(url_for('admin.edit_groups'))
     
-    # Get active tournament
-    active_tournament = Tournament.get_active()
+    # Get user's selected tournament
+    user = get_current_user()
+    if user and user.selected_tournament_id:
+        active_tournament = Tournament.query.get(user.selected_tournament_id)
+    else:
+        active_tournament = Tournament.query.filter_by(is_active=True).first()
     if not active_tournament:
         flash('Kein aktives Turnier vorhanden', 'error')
         return redirect(url_for('admin.index'))
@@ -396,8 +417,12 @@ def sync_matches():
     from app.services.providers import ProviderFactory, DataProvider
     
     try:
-        # Get active tournament
-        active_tournament = Tournament.get_active()
+        # Get user's selected tournament
+        user = get_current_user()
+        if user and user.selected_tournament_id:
+            active_tournament = Tournament.query.get(user.selected_tournament_id)
+        else:
+            active_tournament = Tournament.query.filter_by(is_active=True).first()
         if not active_tournament:
             flash('Kein aktives Turnier vorhanden', 'error')
             return redirect(url_for('admin.index'))
@@ -496,8 +521,12 @@ def _update_tournament_stats_from_matches(tournament, matches_data):
 @admin_bp.route('/admin/recalculate', methods=['POST'])
 def recalculate_points():
     try:
-        # Get active tournament for tournament-scoped recalculation
-        active_tournament = Tournament.get_active()
+        # Get user's selected tournament for recalculation
+        user = get_current_user()
+        if user and user.selected_tournament_id:
+            active_tournament = Tournament.query.get(user.selected_tournament_id)
+        else:
+            active_tournament = Tournament.query.filter_by(is_active=True).first()
         tournament_id = active_tournament.id if active_tournament else None
         
         ScoringService.recalculate_all_match_points(tournament_id=tournament_id)
@@ -510,8 +539,12 @@ def recalculate_points():
 @admin_bp.route('/admin/calculate-tournament-points', methods=['POST'])
 def calculate_tournament_points():
     try:
-        # Get active tournament
-        active_tournament = Tournament.get_active()
+        # Get user's selected tournament
+        user = get_current_user()
+        if user and user.selected_tournament_id:
+            active_tournament = Tournament.query.get(user.selected_tournament_id)
+        else:
+            active_tournament = Tournament.query.filter_by(is_active=True).first()
         tournament_id = active_tournament.id if active_tournament else None
         
         result = ScoringService.calculate_tournament_points(tournament_id=tournament_id)

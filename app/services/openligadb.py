@@ -93,9 +93,22 @@ class OpenLigaDBClient:
             print('No match data received from API')
             return 0
         
-        # Get active tournament for round_type lookup
-        active_tournament = Tournament.get_active()
+        # Get tournament for round_type lookup (from session if available)
+        active_tournament = None
         round_type_map = {}
+        try:
+            from flask import session
+            if session.get('user_id'):
+                from app.models import User
+                user = User.query.get(session['user_id'])
+                if user and user.selected_tournament_id:
+                    active_tournament = Tournament.query.get(user.selected_tournament_id)
+        except:
+            pass
+        
+        if not active_tournament:
+            active_tournament = Tournament.query.filter_by(is_active=True).first()
+        
         if active_tournament:
             rounds = TournamentRound.query.filter_by(tournament_id=active_tournament.id).all()
             round_type_map = {r.name: r.round_type for r in rounds}

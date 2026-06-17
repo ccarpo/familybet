@@ -3,6 +3,7 @@ Tournament Management Routes for Admin
 """
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash
+from datetime import datetime
 from app.models import Tournament, TournamentGroup, TournamentTeam, TournamentRound, User
 from app import db
 
@@ -28,11 +29,18 @@ def check_admin():
 def tournaments():
     """List all tournaments."""
     all_tournaments = Tournament.query.order_by(Tournament.created_at.desc()).all()
-    active_tournament = Tournament.get_active()
+    
+    # Get user's selected tournament
+    user = get_current_user()
+    if user and user.selected_tournament_id:
+        active_tournament = Tournament.query.get(user.selected_tournament_id)
+    else:
+        active_tournament = Tournament.query.filter_by(is_active=True).first()
+    
     return render_template('admin/tournaments.html',
                           tournaments=all_tournaments,
                           active_tournament=active_tournament,
-                          user=get_current_user())
+                          user=user)
 
 
 @admin_tournaments_bp.route('/admin/tournaments/create', methods=['GET', 'POST'])
@@ -122,6 +130,24 @@ def activate_tournament(tournament_id):
     return redirect(url_for('admin_tournaments.tournaments'))
 
 
+@admin_tournaments_bp.route('/user/select-tournament/<int:tournament_id>', methods=['POST'])
+def select_tournament(tournament_id):
+    """User selects which tournament to view."""
+    from flask import session
+    
+    user = get_current_user()
+    if not user:
+        flash('Bitte einloggen', 'error')
+        return redirect(url_for('auth.login'))
+    
+    tournament = Tournament.query.get_or_404(tournament_id)
+    user.selected_tournament_id = tournament_id
+    db.session.commit()
+    
+    flash(f'Turnier gewechselt: {tournament.name}', 'success')
+    return redirect(request.referrer or url_for('main.dashboard'))
+
+
 @admin_tournaments_bp.route('/admin/tournaments/<int:tournament_id>/deactivate', methods=['POST'])
 def deactivate_tournament(tournament_id):
     """Deactivate (archive) a tournament."""
@@ -161,7 +187,6 @@ def delete_tournament(tournament_id):
 @admin_tournaments_bp.route('/admin/tournaments/<int:tournament_id>/results', methods=['GET', 'POST'])
 def enter_results(tournament_id):
     """Enter match results for manual tournaments."""
-    from datetime import datetime
     from app.models import Match
     from app.services.scoring import ScoringService
     

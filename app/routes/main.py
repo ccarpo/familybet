@@ -35,9 +35,12 @@ def dashboard():
     if not user:
         return redirect(url_for('auth.login'))
 
-    # Get active tournament for filtering
+    # Get user's selected tournament for filtering
     from app.models import Tournament
-    active_tournament = Tournament.get_active()
+    if user.selected_tournament_id:
+        active_tournament = Tournament.query.get(user.selected_tournament_id)
+    else:
+        active_tournament = Tournament.query.filter_by(is_active=True).first()
     league_shortcut = active_tournament.get_league_shortcut() if active_tournament else None
     
     # Get upcoming matches (next 5 that haven't started)
@@ -64,8 +67,8 @@ def dashboard():
     # Get tournament bet
     tournament_bet = TournamentBet.query.filter_by(user_id=user.id).first()
 
-    # Get full leaderboard (for current ranking display)
-    leaderboard = ScoringService.get_leaderboard()
+    # Get full leaderboard for selected tournament
+    leaderboard = ScoringService.get_leaderboard(tournament_id=active_tournament.id if active_tournament else None)
     my_rank = next((entry for entry in leaderboard if entry['user'].id == user.id), None)
 
     # Get all visible users for game overviews
@@ -174,9 +177,12 @@ def matches():
     if not user:
         return redirect(url_for('auth.login'))
 
-    # Get active tournament for filtering
+    # Get user's selected tournament for filtering
     from app.models import Tournament
-    active_tournament = Tournament.get_active()
+    if user.selected_tournament_id:
+        active_tournament = Tournament.query.get(user.selected_tournament_id)
+    else:
+        active_tournament = Tournament.query.filter_by(is_active=True).first()
     league_shortcut = active_tournament.get_league_shortcut() if active_tournament else None
 
     # Get all matches grouped by round
@@ -229,9 +235,12 @@ def match_detail(match_id):
     if match.is_finished:
         all_bets = Bet.query.filter_by(match_id=match_id).join(User).all()
     
-    # Get current scoring config (for active tournament)
+    # Get user's selected tournament for scoring config
     from app.models import Tournament
-    active_tournament = Tournament.get_active()
+    if user.selected_tournament_id:
+        active_tournament = Tournament.query.get(user.selected_tournament_id)
+    else:
+        active_tournament = Tournament.query.filter_by(is_active=True).first()
     scoring_config = ScoringConfig.get_current(
         tournament_id=active_tournament.id if active_tournament else None
     )
@@ -251,9 +260,12 @@ def history():
     if not user:
         return redirect(url_for('auth.login'))
 
-    # Get active tournament for filtering
+    # Get user's selected tournament for filtering
     from app.models import Tournament
-    active_tournament = Tournament.get_active()
+    if user.selected_tournament_id:
+        active_tournament = Tournament.query.get(user.selected_tournament_id)
+    else:
+        active_tournament = Tournament.query.filter_by(is_active=True).first()
     league_shortcut = active_tournament.get_league_shortcut() if active_tournament else None
 
     # Get all finished matches (not just last 5) for active tournament
@@ -287,9 +299,12 @@ def leaderboard():
     if not user:
         return redirect(url_for('auth.login'))
 
-    # Get active tournament for leaderboard
+    # Get user's selected tournament for leaderboard
     from app.models import Tournament
-    active_tournament = Tournament.get_active()
+    if user.selected_tournament_id:
+        active_tournament = Tournament.query.get(user.selected_tournament_id)
+    else:
+        active_tournament = Tournament.query.filter_by(is_active=True).first()
     tournament_id = active_tournament.id if active_tournament else None
     
     entries = ScoringService.get_leaderboard(tournament_id=tournament_id)
@@ -341,9 +356,12 @@ def groups():
     if not user:
         return redirect(url_for('auth.login'))
 
-    # Get active tournament for filtering
+    # Get user's selected tournament for filtering
     from app.models import Tournament
-    active_tournament = Tournament.get_active()
+    if user.selected_tournament_id:
+        active_tournament = Tournament.query.get(user.selected_tournament_id)
+    else:
+        active_tournament = Tournament.query.filter_by(is_active=True).first()
     league_shortcut = active_tournament.get_league_shortcut() if active_tournament else None
 
     # Get group matches for active tournament

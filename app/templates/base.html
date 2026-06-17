@@ -21,6 +21,29 @@
                 
                 {% if session.user_id %}
                 <div class="flex items-center space-x-4">
+                    <!-- Tournament Dropdown -->
+                    {% if g.active_tournaments %}
+                    <div class="relative group">
+                        <button class="hover:text-blue-200 text-sm flex items-center gap-1 bg-blue-700 px-3 py-1 rounded">
+                            {% if g.user_selected_tournament %}
+                                🏆 {{ g.user_selected_tournament.short_name }} ▼
+                            {% else %}
+                                🏆 Turnier wählen ▼
+                            {% endif %}
+                        </button>
+                        <div class="absolute left-0 mt-0 w-56 bg-white rounded-md shadow-lg py-1 hidden group-hover:block z-50">
+                            {% for tournament in g.active_tournaments %}
+                            <form method="POST" action="{{ url_for('admin_tournaments.select_tournament', tournament_id=tournament.id) }}" class="block">
+                                <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {% if g.user_selected_tournament and g.user_selected_tournament.id == tournament.id %}bg-blue-50 font-medium{% endif %}">
+                                    {% if g.user_selected_tournament and g.user_selected_tournament.id == tournament.id %}✓ {% endif %}
+                                    {{ tournament.name }}
+                                </button>
+                            </form>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
                     <!-- Runden Dropdown -->
                     <div class="relative group">
                         <button class="hover:text-blue-200 text-sm flex items-center gap-1">

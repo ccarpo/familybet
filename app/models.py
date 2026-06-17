@@ -406,10 +406,8 @@ class Tournament(db.Model):
     
     @classmethod
     def set_active(cls, tournament_id):
-        """Set a tournament as active, deactivate others."""
-        # Deactivate all
-        cls.query.update({'is_active': False})
-        # Activate the selected one
+        """Set a tournament as active (adds to active tournaments)."""
+        # Note: This now allows multiple active tournaments
         tournament = cls.query.get(tournament_id)
         if tournament:
             tournament.is_active = True

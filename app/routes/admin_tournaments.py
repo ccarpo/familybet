@@ -123,10 +123,18 @@ def tournament_detail(tournament_id):
 
 @admin_tournaments_bp.route('/admin/tournaments/<int:tournament_id>/activate', methods=['POST'])
 def activate_tournament(tournament_id):
-    """Activate a tournament (deactivates others)."""
-    Tournament.set_active(tournament_id)
-    tournament = Tournament.query.get(tournament_id)
-    flash(f'Turnier "{tournament.name}" ist jetzt aktiv', 'success')
+    """Activate a tournament (adds to active tournaments, doesn't deactivate others)."""
+    tournament = Tournament.query.get_or_404(tournament_id)
+    tournament.is_active = True
+    db.session.commit()
+    
+    # Also set as current user's selected tournament
+    user = get_current_user()
+    if user:
+        user.selected_tournament_id = tournament_id
+        db.session.commit()
+    
+    flash(f'Turnier "{tournament.name}" ist jetzt aktiv (mehrere Turniere können gleichzeitig aktiv sein)', 'success')
     return redirect(url_for('admin_tournaments.tournaments'))
 
 

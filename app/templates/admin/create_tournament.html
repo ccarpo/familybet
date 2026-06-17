@@ -32,11 +32,27 @@
                    placeholder="2026">
         </div>
 
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">OpenLigaDB Shortcut</label>
-            <input type="text" name="league_shortcut" 
-                   class="w-full border rounded px-3 py-2"
-                   placeholder="z.B. wm2026 (optional)">
+        <!-- Data Provider Selection -->
+        <div class="border-t pt-4 mt-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Datenquelle *</label>
+            <select name="provider_type" id="provider_type" required 
+                    class="w-full border rounded px-3 py-2 mb-3"
+                    onchange="toggleProviderConfig()">
+                <option value="openligadb">📡 OpenLigaDB (auto-sync)</option>
+                <option value="manual">✏️ Manuell (keine automatische Synchronisation)</option>
+            </select>
+            <p class="text-xs text-gray-500">Wähle wie die Spieldaten bezogen werden</p>
+        </div>
+
+        <!-- OpenLigaDB Config -->
+        <div id="openligadb_config" class="space-y-3">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">OpenLigaDB Shortcut</label>
+                <input type="text" name="league_shortcut" 
+                       class="w-full border rounded px-3 py-2"
+                       placeholder="z.B. wm2026">
+                <p class="text-xs text-gray-500">League Shortcut bei OpenLigaDB (z.B. 'wm2026', 'bl1')</p>
+            </div>
         </div>
 
         <div class="grid grid-cols-2 gap-4">

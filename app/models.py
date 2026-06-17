@@ -371,6 +371,12 @@ class Tournament(db.Model):
     short_name = db.Column(db.String(50), nullable=False, unique=True)  # "wm2026"
     season = db.Column(db.Integer, nullable=False)  # 2026
     is_active = db.Column(db.Boolean, default=False)
+    
+    # Data provider configuration
+    provider_type = db.Column(db.String(50), default='openligadb')  # 'openligadb', 'manual', 'api-football', etc.
+    provider_config = db.Column(db.JSON, nullable=True)  # {league_shortcut: 'wm2026', season: 2026, api_key: 'xxx'}
+    
+    # Deprecated: kept for backward compatibility, use provider_config instead
     league_shortcut = db.Column(db.String(50))  # OpenLigaDB identifier
     
     # Tournament structure config
@@ -406,6 +412,18 @@ class Tournament(db.Model):
             tournament.is_active = True
             db.session.commit()
         return tournament
+    
+    def get_league_shortcut(self):
+        """Get league shortcut from provider config or legacy field."""
+        if self.provider_config and 'league_shortcut' in self.provider_config:
+            return self.provider_config['league_shortcut']
+        return self.league_shortcut
+    
+    def get_provider_season(self):
+        """Get season from provider config or tournament season."""
+        if self.provider_config and 'season' in self.provider_config:
+            return self.provider_config['season']
+        return self.season
 
 
 class TournamentGroup(db.Model):

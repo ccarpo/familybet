@@ -248,7 +248,8 @@ def edit_groups():
                 match_count = 0
                 for match in matches:
                     # Only update group stage matches (not knockout)
-                    is_group_match = match.round_type == 'group' or (match.round_type is None and ('Gruppe' in match.round_name or match.round_name == 'Unknown'))
+                    # round_type='group' OR (round_type is None AND round_name contains 'Gruppe' - legacy data)
+                    is_group_match = match.round_type == 'group' or (match.round_type is None and 'Gruppe' in match.round_name)
                     if is_group_match and match.round_name != new_group:
                         match.round_name = new_group
                         match_count += 1
@@ -389,13 +390,65 @@ def toggle_user_visibility(user_id):
 
 @admin_bp.route('/admin/sync', methods=['POST'])
 def sync_matches():
+    """Sync matches using the active tournament's configured provider."""
+    from app.services.providers import ProviderFactory, DataProvider
+    
     try:
-        synced = trigger_manual_sync()
-        flash(f'{synced} neue Spiele synchronisiert', 'success')
+        # Get active tournament
+        active_tournament = Tournament.get_active()
+        if not active_tournament:
+            flash('Kein aktives Turnier vorhanden', 'error')
+            return redirect(url_for('admin.index'))
+        
+        # Check provider type
+        if active_tournament.provider_type == 'manual':
+            flash('Manuelle Turniere haben keine automatische Synchronisation. Bitte Spiele manuell erstellen oder CSV importieren.', 'warning')
+            return redirect(url_for('admin.index'))
+        
+        # Get provider for this tournament
+        provider = ProviderFactory.get(
+            active_tournament.provider_type or 'openligadb',
+            active_tournament.provider_config or {}
+        )
+        
+        # Get league shortcut and season
+        league_shortcut = active_tournament.get_league_shortcut()
+        season = active_tournament.get_provider_season()
+        
+        if not league_shortcut:
+            flash('Kein league_shortcut für dieses Turnier konfiguriert', 'error')
+            return redirect(url_for('admin.index'))
+        
+        # Fetch matches from provider
+        matches_data = provider.fetch_matches(league_shortcut, season)
+        
+        if not matches_data:
+            flash('Keine neuen Spiele gefunden oder Fehler beim Abrufen', 'warning')
+            return redirect(url_for('admin.index'))
+        
+        # Import matches (using existing logic from openligadb service)
+        synced = _import_matches_from_provider(matches_data, league_shortcut, season)
+        
+        flash(f'{synced} Spiele von {provider.provider_name} synchronisiert', 'success')
+    except ValueError as e:
+        flash(f'Provider-Fehler: {str(e)}', 'error')
     except Exception as e:
         flash(f'Synchronisation fehlgeschlagen: {str(e)}', 'error')
     
     return redirect(url_for('admin.index'))
+
+
+def _import_matches_from_provider(matches_data, league_shortcut, season):
+    """Import matches from provider data into database."""
+    from app.services.openligadb import OpenLigaDBService
+    
+    # Reuse existing sync logic
+    service = OpenLigaDBService(league_shortcut=league_shortcut, season=season)
+    
+    # Override fetch to use our already-fetched data
+    service.get_match_data = lambda s, l: [m.to_dict() for m in matches_data]
+    
+    return service.sync_matches(league_shortcut, season)
 
 @admin_bp.route('/admin/recalculate', methods=['POST'])
 def recalculate_points():

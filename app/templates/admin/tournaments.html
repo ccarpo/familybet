@@ -74,7 +74,7 @@
                     </td>
                     <td class="px-4 py-3">{{ tournament.num_groups }} × {{ tournament.teams_per_group }}</td>
                     <td class="px-4 py-3">
-                        <div class="flex gap-2">
+                        <div class="flex gap-2 flex-wrap">
                             <a href="{{ url_for('admin_tournaments.tournament_detail', tournament_id=tournament.id) }}" 
                                class="text-blue-600 hover:text-blue-800 text-sm">
                                 Details
@@ -85,7 +85,18 @@
                                     Aktivieren
                                 </button>
                             </form>
+                            {% else %}
+                            <form method="POST" action="{{ url_for('admin_tournaments.deactivate_tournament', tournament_id=tournament.id) }}" class="inline">
+                                <button type="submit" class="text-amber-600 hover:text-amber-800 text-sm">
+                                    Archivieren
+                                </button>
+                            </form>
                             {% endif %}
+                            <form method="POST" action="{{ url_for('admin_tournaments.delete_tournament', tournament_id=tournament.id) }}" class="inline" onsubmit="return confirm('Turnier &quot;{{ tournament.name }}&quot; wirklich löschen? Alle Daten gehen verloren!')">
+                                <button type="submit" class="text-red-600 hover:text-red-800 text-sm">
+                                    Löschen
+                                </button>
+                            </form>
                         </div>
                     </td>
                 </tr>

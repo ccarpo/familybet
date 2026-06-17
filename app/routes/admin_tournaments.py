@@ -56,6 +56,13 @@ def create_tournament():
             flash(f'Turnier "{short_name}" existiert bereits', 'error')
             return render_template('admin/create_tournament.html')
         
+        # Get provider settings
+        provider_type = request.form.get('provider_type', 'openligadb')
+        provider_config = {}
+        if provider_type == 'openligadb':
+            provider_config['league_shortcut'] = request.form.get('league_shortcut', short_name)
+            provider_config['season'] = season
+        
         tournament = Tournament(
             name=name,
             short_name=short_name,
@@ -63,6 +70,8 @@ def create_tournament():
             league_shortcut=league_shortcut or short_name,
             num_groups=num_groups,
             teams_per_group=teams_per_group,
+            provider_type=provider_type,
+            provider_config=provider_config if provider_config else None,
             is_active=False  # Don't auto-activate
         )
         db.session.add(tournament)
@@ -110,6 +119,41 @@ def activate_tournament(tournament_id):
     Tournament.set_active(tournament_id)
     tournament = Tournament.query.get(tournament_id)
     flash(f'Turnier "{tournament.name}" ist jetzt aktiv', 'success')
+    return redirect(url_for('admin_tournaments.tournaments'))
+
+
+@admin_tournaments_bp.route('/admin/tournaments/<int:tournament_id>/deactivate', methods=['POST'])
+def deactivate_tournament(tournament_id):
+    """Deactivate (archive) a tournament."""
+    tournament = Tournament.query.get_or_404(tournament_id)
+    tournament.is_active = False
+    db.session.commit()
+    flash(f'Turnier "{tournament.name}" archiviert', 'info')
+    return redirect(url_for('admin_tournaments.tournaments'))
+
+
+@admin_tournaments_bp.route('/admin/tournaments/<int:tournament_id>/delete', methods=['POST'])
+def delete_tournament(tournament_id):
+    """Delete a tournament and all its data."""
+    from app.models import TournamentGroup, TournamentTeam, TournamentRound, Match
+    
+    tournament = Tournament.query.get_or_404(tournament_id)
+    name = tournament.name
+    
+    # Delete related data first
+    TournamentGroup.query.filter_by(tournament_id=tournament_id).delete()
+    TournamentTeam.query.filter_by(tournament_id=tournament_id).delete()
+    TournamentRound.query.filter_by(tournament_id=tournament_id).delete()
+    
+    # Delete matches
+    league_shortcut = tournament.get_league_shortcut() or tournament.short_name
+    Match.query.filter_by(league_shortcut=league_shortcut).delete()
+    
+    # Delete tournament
+    db.session.delete(tournament)
+    db.session.commit()
+    
+    flash(f'Turnier "{name}" und alle zugehörigen Daten gelöscht', 'success')
     return redirect(url_for('admin_tournaments.tournaments'))
 
 
@@ -285,7 +329,6 @@ def add_manual_match(tournament_id):
         round_type = request.form.get('round_type', 'knockout')
         match_date_str = request.form.get('match_date')
         match_time_str = request.form.get('match_time')
-        location = request.form.get('location', '')
         
         if not all([team1_name, team2_name, round_name, match_date_str]):
             flash('Alle Pflichtfelder ausfüllen', 'error')
@@ -308,6 +351,7 @@ def add_manual_match(tournament_id):
             league_season=int(tournament.season),
             round_name=round_name,
             round_type=round_type,
+            group_order_id=0,  # KO matches don't need group ordering
             team1_id=0,
             team1_name=team1_name,
             team1_short=team1_name[:3].upper(),

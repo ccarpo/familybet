@@ -96,8 +96,10 @@
                     <div class="space-y-1 max-h-40 overflow-y-auto">
                         {% for match in matches_in_group %}
                         <div class="text-xs bg-gray-100 rounded px-2 py-1">
-                            <div class="flex justify-between">
+                            <div class="flex justify-between items-center">
                                 <span>{{ match.team1_name }} vs {{ match.team2_name }}</span>
+                                <a href="{{ url_for('admin_tournaments.edit_match', match_id=match.id) }}" 
+                                   class="text-blue-600 hover:text-blue-800" title="Bearbeiten">✏️</a>
                             </div>
                             <div class="text-gray-500">
                                 {{ match.match_date.strftime('%d.%m %H:%M') }}

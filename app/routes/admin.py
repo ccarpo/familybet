@@ -132,7 +132,6 @@ def add_user():
 def assign_groups():
     """Assign teams to matches based on Tournament data"""
     from app.models import Tournament, TournamentGroup, TournamentTeam, Match
-    from app.services.users import get_current_user
     
     try:
         # Get user's selected tournament

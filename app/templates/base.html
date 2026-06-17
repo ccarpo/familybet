@@ -21,6 +21,20 @@
                 
                 {% if session.user_id %}
                 <div class="flex items-center space-x-4">
+                    <!-- Runden Dropdown -->
+                    <div class="relative group">
+                        <button class="hover:text-blue-200 text-sm flex items-center gap-1">
+                            Runden ▼
+                        </button>
+                        <div class="absolute left-0 mt-0 w-48 bg-white rounded-md shadow-lg py-1 hidden group-hover:block z-50">
+                            <a href="{{ url_for('main.groups') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">📊 Gruppenphase</a>
+                            <a href="{{ url_for('main.round_last16') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🏆 Sechzehntelfinale</a>
+                            <a href="{{ url_for('main.round_quarter') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🏆 Achtelfinale</a>
+                            <a href="{{ url_for('main.round_semi') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🏆 Viertelfinale</a>
+                            <a href="{{ url_for('main.round_final') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🏆 Halbfinale</a>
+                            <a href="{{ url_for('main.round_champion') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🏆 Finale & Platz 3</a>
+                        </div>
+                    </div>
                     <a href="{{ url_for('main.matches') }}" class="hover:text-blue-200 text-sm">Tippen</a>
                     <a href="{{ url_for('main.history') }}" class="hover:text-blue-200 text-sm">Historie</a>
                     <a href="{{ url_for('main.profile') }}" class="hover:text-blue-200 text-sm">Profil</a>

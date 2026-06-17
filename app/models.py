@@ -103,7 +103,7 @@ class Match(db.Model):
             return BettingPhaseLock.is_phase_locked('viertelfinale')
         elif 'halb' in round_lower or 'semi' in round_lower:
             return BettingPhaseLock.is_phase_locked('halbfinale')
-        elif 'finale' in round_lower or 'platz 3' in round_lower or 'platz 3' in round_lower:
+        elif 'finale' in round_lower or 'platz 3' in round_lower:
             return BettingPhaseLock.is_phase_locked('finale')
 
         return False

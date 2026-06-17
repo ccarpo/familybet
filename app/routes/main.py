@@ -218,5 +218,204 @@ def profile():
         
         flash('Profil aktualisiert', 'success')
         return redirect(url_for('main.profile'))
-    
+
     return render_template('profile.html', user=user)
+
+
+@main_bp.route('/groups')
+def groups():
+    """Show all groups with standings and matches."""
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('auth.login'))
+
+    # Get all group matches
+    group_matches = Match.query.filter(Match.round_name.like('Gruppe%')).order_by(Match.match_date).all()
+
+    # Group by round_name
+    groups_data = {}
+    for match in group_matches:
+        group_name = match.round_name
+        if group_name not in groups_data:
+            groups_data[group_name] = {'matches': [], 'teams': {}}
+        groups_data[group_name]['matches'].append(match)
+
+        # Track teams for standings
+        for team_name, team_id, is_team1 in [(match.team1_name, match.team1_id, True), (match.team2_name, match.team2_id, False)]:
+            if team_name not in groups_data[group_name]['teams']:
+                groups_data[group_name]['teams'][team_name] = {
+                    'id': team_id,
+                    'played': 0, 'won': 0, 'drawn': 0, 'lost': 0,
+                    'goals_for': 0, 'goals_against': 0, 'points': 0
+                }
+
+    # Calculate standings from finished matches
+    for group_name, data in groups_data.items():
+        for match in data['matches']:
+            if match.is_finished and match.team1_score is not None and match.team2_score is not None:
+                t1, t2 = match.team1_name, match.team2_name
+                s1, s2 = match.team1_score, match.team2_score
+
+                data['teams'][t1]['played'] += 1
+                data['teams'][t2]['played'] += 1
+                data['teams'][t1]['goals_for'] += s1
+                data['teams'][t1]['goals_against'] += s2
+                data['teams'][t2]['goals_for'] += s2
+                data['teams'][t2]['goals_against'] += s1
+
+                if s1 > s2:
+                    data['teams'][t1]['won'] += 1
+                    data['teams'][t1]['points'] += 3
+                    data['teams'][t2]['lost'] += 1
+                elif s2 > s1:
+                    data['teams'][t2]['won'] += 1
+                    data['teams'][t2]['points'] += 3
+                    data['teams'][t1]['lost'] += 1
+                else:
+                    data['teams'][t1]['drawn'] += 1
+                    data['teams'][t2]['drawn'] += 1
+                    data['teams'][t1]['points'] += 1
+                    data['teams'][t2]['points'] += 1
+
+    # Get user bets
+    my_bets = {bet.match_id: bet for bet in Bet.query.filter_by(user_id=user.id).all()}
+
+    return render_template('groups.html',
+                          groups_data=groups_data,
+                          my_bets=my_bets,
+                          user=user)
+
+
+@main_bp.route('/round/last16')
+def round_last16():
+    """Show Sechzehntelfinale (Round of 16) matches."""
+    return _show_ko_round('Sechzehntelfinale', 'Sechzehntelfinale')
+
+
+@main_bp.route('/round/quarter')
+def round_quarter():
+    """Show Achtelfinale (Round of 8/Quarterfinals) matches."""
+    return _show_ko_round('Achtelfinale', 'Achtelfinale')
+
+
+@main_bp.route('/round/semi')
+def round_semi():
+    """Show Viertelfinale (Semifinals) matches."""
+    return _show_ko_round('Viertelfinale', 'Viertelfinale')
+
+
+@main_bp.route('/round/final')
+def round_final():
+    """Show Halbfinale (Finals) matches."""
+    return _show_ko_round('Halbfinale', 'Halbfinale')
+
+
+@main_bp.route('/round/champion')
+def round_champion():
+    """Show Finale and Spiel um Platz 3."""
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('auth.login'))
+
+    # Get finale and 3rd place matches
+    matches = Match.query.filter(
+        db.or_(
+            Match.round_name.like('%Finale%'),
+            Match.round_name.like('%Platz 3%'),
+            Match.round_name.like('%finale%')
+        )
+    ).order_by(Match.match_date).all()
+
+    # Get user bets
+    my_bets = {bet.match_id: bet for bet in Bet.query.filter_by(user_id=user.id).all()}
+
+    return render_template('ko_round.html',
+                          round_name='Finale & Spiel um Platz 3',
+                          matches=matches,
+                          my_bets=my_bets,
+                          user=user,
+                          show_qualifiers=False)
+
+
+def _show_ko_round(round_keyword, display_name):
+    """Helper to show knockout round matches."""
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('auth.login'))
+
+    # Get matches for this round
+    matches = Match.query.filter(Match.round_name.like(f'%{round_keyword}%')).order_by(Match.match_date).all()
+
+    # Get user bets
+    my_bets = {bet.match_id: bet for bet in Bet.query.filter_by(user_id=user.id).all()}
+
+    # Get qualified teams from groups (for display purposes)
+    qualified_teams = _get_qualified_teams()
+
+    return render_template('ko_round.html',
+                          round_name=display_name,
+                          matches=matches,
+                          my_bets=my_bets,
+                          qualified_teams=qualified_teams,
+                          user=user,
+                          show_qualifiers=True)
+
+
+def _get_qualified_teams():
+    """Calculate which teams have qualified from groups."""
+    group_matches = Match.query.filter(Match.round_name.like('Gruppe%')).all()
+
+    groups_data = {}
+    for match in group_matches:
+        group_name = match.round_name
+        if group_name not in groups_data:
+            groups_data[group_name] = {}
+
+        for team_name in [match.team1_name, match.team2_name]:
+            if team_name not in groups_data[group_name]:
+                groups_data[group_name][team_name] = {
+                    'played': 0, 'won': 0, 'drawn': 0, 'lost': 0,
+                    'goals_for': 0, 'goals_against': 0, 'points': 0
+                }
+
+        if match.is_finished and match.team1_score is not None:
+            t1, t2 = match.team1_name, match.team2_name
+            s1, s2 = match.team1_score, match.team2_score
+
+            for t in [t1, t2]:
+                groups_data[group_name][t]['played'] += 1
+
+            groups_data[group_name][t1]['goals_for'] += s1
+            groups_data[group_name][t1]['goals_against'] += s2
+            groups_data[group_name][t2]['goals_for'] += s2
+            groups_data[group_name][t2]['goals_against'] += s1
+
+            if s1 > s2:
+                groups_data[group_name][t1]['won'] += 1
+                groups_data[group_name][t1]['points'] += 3
+                groups_data[group_name][t2]['lost'] += 1
+            elif s2 > s1:
+                groups_data[group_name][t2]['won'] += 1
+                groups_data[group_name][t2]['points'] += 3
+                groups_data[group_name][t1]['lost'] += 1
+            else:
+                groups_data[group_name][t1]['drawn'] += 1
+                groups_data[group_name][t2]['drawn'] += 1
+                groups_data[group_name][t1]['points'] += 1
+                groups_data[group_name][t2]['points'] += 1
+
+    # Get top 2 from each group + best 3rds
+    qualified = {'1st': [], '2nd': [], '3rd': []}
+
+    for group_name, teams in groups_data.items():
+        # Sort by points, then goal difference
+        sorted_teams = sorted(teams.items(), key=lambda x: (x[1]['points'], x[1]['goals_for'] - x[1]['goals_against']), reverse=True)
+
+        if len(sorted_teams) >= 1:
+            qualified['1st'].append((group_name, sorted_teams[0][0]))
+        if len(sorted_teams) >= 2:
+            qualified['2nd'].append((group_name, sorted_teams[1][0]))
+        if len(sorted_teams) >= 3:
+            qualified['3rd'].append((group_name, sorted_teams[2][0], sorted_teams[2][1]['points']))
+
+    return qualified

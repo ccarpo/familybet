@@ -148,7 +148,7 @@ def import_bets(data_dict):
 
         # Commit all changes
         db.session.commit()
-        print(f"\n✅ Done! Imported {imported_count} bets, skipped {skipped_count}")
+        print(f"\n✅ Done! Imported {imported_count} bets")
 
 
 # DATA FROM YOUR EXCEL

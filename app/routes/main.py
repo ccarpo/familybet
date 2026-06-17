@@ -264,8 +264,8 @@ def profile():
         
         # Check if email is already used by another user
         if email:
-            existing = User.query.filter(User.email == email, User.id != user.id).first()
-            if existing:
+            from app.services.users import email_exists
+            if email_exists(email, exclude_user_id=user.id):
                 flash('Email wird bereits verwendet', 'error')
                 return render_template('profile.html', user=user)
         

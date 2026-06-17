@@ -130,15 +130,44 @@ def match_detail(match_id):
                           user=user,
                           scoring_config=scoring_config)
 
+@main_bp.route('/history')
+def history():
+    """Show all finished matches with all bets - the complete betting history."""
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('auth.login'))
+
+    # Get all finished matches (not just last 5)
+    finished_matches = Match.query.filter_by(is_finished=True).order_by(Match.match_date.desc()).all()
+
+    # Get all visible users
+    all_users = User.query.filter_by(is_hidden_from_leaderboard=False).order_by(User.name).all()
+
+    # Get all bets for these matches
+    match_ids = [m.id for m in finished_matches]
+    all_bets_for_display = {}
+    if match_ids:
+        bets_query = Bet.query.filter(Bet.match_id.in_(match_ids)).join(User).all()
+        for bet in bets_query:
+            if bet.match_id not in all_bets_for_display:
+                all_bets_for_display[bet.match_id] = {}
+            all_bets_for_display[bet.match_id][bet.user_id] = bet
+
+    return render_template('history.html',
+                          user=user,
+                          matches=finished_matches,
+                          all_users=all_users,
+                          all_bets=all_bets_for_display)
+
 @main_bp.route('/leaderboard')
 def leaderboard():
     user = get_current_user()
     if not user:
         return redirect(url_for('auth.login'))
-    
+
     entries = ScoringService.get_leaderboard()
     scoring_config = ScoringConfig.get_current()
-    
+
     return render_template('leaderboard.html',
                           entries=entries,
                           user=user,

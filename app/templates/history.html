@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Historie - FamilyBet{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <h1 class="text-2xl font-bold text-center">📜 Spielhistorie</h1>
+
+    <!-- All Finished Games - TRANSPOSED -->
+    {% if matches %}
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm border-collapse">
+                <thead>
+                    <tr class="bg-gray-100">
+                        <th class="text-left px-2 py-2 border">Spiel</th>
+                        <th class="text-center px-2 py-2 border">Ergebnis</th>
+                        {% for u in all_users %}
+                        <th class="text-center px-2 py-2 border {% if u.id == user.id %}bg-blue-100{% endif %}">
+                            {{ u.name }}
+                        </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for match in matches %}
+                    <tr class="border-b hover:bg-gray-50">
+                        <!-- Spiel -->
+                        <td class="px-2 py-2 border">
+                            <a href="{{ url_for('main.match_detail', match_id=match.id) }}" class="hover:underline">
+                                <div class="text-xs text-gray-500">{{ match.round_name }}</div>
+                                <div class="font-medium">{{ match.team1_name }} vs {{ match.team2_name }}</div>
+                                <div class="text-xs text-gray-400">{{ match.match_date.strftime('%d.%m. %H:%M') }}</div>
+                            </a>
+                        </td>
+                        <!-- Ergebnis -->
+                        <td class="text-center px-2 py-2 border font-bold text-lg">
+                            {{ match.team1_score }}:{{ match.team2_score }}
+                        </td>
+                        <!-- Tipps & Punkte pro Spieler -->
+                        {% for u in all_users %}
+                        {% set bet = all_bets[match.id][u.id] if all_bets[match.id] and all_bets[match.id][u.id] else None %}
+                        <td class="text-center px-2 py-2 border {% if u.id == user.id %}bg-blue-50{% endif %}">
+                            {% if bet %}
+                                <div>{{ bet.team1_score_pred }}:{{ bet.team2_score_pred }}</div>
+                                <div class="text-xs font-semibold {% if bet.points_earned > 0 %}text-green-600{% else %}text-red-500{% endif %}">
+                                    {{ bet.points_earned }}P
+                                </div>
+                            {% else %}
+                                <span class="text-gray-300">-</span>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="bg-white rounded-lg shadow-md p-8 text-center">
+        <p class="text-gray-500">Noch keine beendeten Spiele.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -21,8 +21,8 @@
                 
                 {% if session.user_id %}
                 <div class="flex items-center space-x-4">
-                    <a href="{{ url_for('main.matches') }}" class="hover:text-blue-200 text-sm">Spiele</a>
-                    <a href="{{ url_for('main.leaderboard') }}" class="hover:text-blue-200 text-sm">Rangliste</a>
+                    <a href="{{ url_for('main.matches') }}" class="hover:text-blue-200 text-sm">Tippen</a>
+                    <a href="{{ url_for('main.history') }}" class="hover:text-blue-200 text-sm">Historie</a>
                     <a href="{{ url_for('main.profile') }}" class="hover:text-blue-200 text-sm">Profil</a>
                     {% if session.is_admin %}
                     <a href="{{ url_for('admin.index') }}" class="hover:text-yellow-200 text-sm text-yellow-300">Admin</a>

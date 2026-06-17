@@ -76,7 +76,7 @@ def _load_migrations():
     migrations_dir = Path(__file__).parent.parent.parent / 'migrations'
 
     if not migrations_dir.exists():
-        current_app.logger.warning(f"Migrations directory not found: {migrations_dir}")
+        print(f"[Migrations] Directory not found: {migrations_dir}")
         return migrations
 
     # Find all migration files
@@ -100,10 +100,10 @@ def _load_migrations():
                     'description': getattr(module, 'DESCRIPTION', 'No description')
                 })
             else:
-                current_app.logger.warning(f"Migration {file_path.name} missing 'migrate' function")
+                print(f"[Migrations] Warning: {file_path.name} missing 'migrate' function")
 
         except (ValueError, ImportError) as e:
-            current_app.logger.warning(f"Failed to load migration {file_path.name}: {e}")
+            print(f"[Migrations] Failed to load {file_path.name}: {e}")
 
     # Sort by version
     migrations.sort(key=lambda m: m['version'])
@@ -117,11 +117,11 @@ def check_and_run_migrations():
     """
     db_path = _get_db_path()
     if not db_path:
-        current_app.logger.info("Non-SQLite database detected, skipping migrations")
+        print("[Migrations] Non-SQLite database detected, skipping migrations")
         return
 
     if not os.path.exists(db_path):
-        current_app.logger.info("Database does not exist yet, no migrations needed")
+        print("[Migrations] Database does not exist yet, no migrations needed")
         return
 
     try:
@@ -140,7 +140,7 @@ def check_and_run_migrations():
         pending = [m for m in migrations if m['version'] > current_version]
 
         if not pending:
-            current_app.logger.debug(f"Database schema is up to date (version {current_version})")
+            print(f"[Migrations] Database schema is up to date (version {current_version})")
             conn.close()
             return
 
@@ -148,19 +148,19 @@ def check_and_run_migrations():
         applied = []
         for migration in pending:
             try:
-                current_app.logger.info(f"Running migration {migration['version']}: {migration['description']}")
+                print(f"[Migrations] Running migration {migration['version']}: {migration['description']}")
                 migration['migrate'](conn)
                 _set_version(conn, migration['version'])
                 applied.append(migration['version'])
             except Exception as e:
-                current_app.logger.error(f"Migration {migration['version']} failed: {e}")
+                print(f"[Migrations] ERROR: Migration {migration['version']} failed: {e}")
                 # Stop here - don't continue with later migrations
                 break
 
         if applied:
-            current_app.logger.info(f"Applied migrations: {applied}. Now at version {_get_current_version(conn)}")
+            print(f"[Migrations] Applied: {applied}. Now at version {_get_current_version(conn)}")
 
         conn.close()
 
     except sqlite3.Error as e:
-        current_app.logger.error(f"Database migration error: {e}")
+        print(f"[Migrations] ERROR: Database error: {e}")

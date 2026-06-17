@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, session, redirect, url_for, flash, request
 from datetime import datetime
 from app import db
-from app.models import User, Match, Bet, TournamentBet, ScoringConfig
+from app.models import User, Match, Bet, TournamentBet, ScoringConfig, BettingPhaseLock
 from app.services.scoring import ScoringService
 
 main_bp = Blueprint('main', __name__)
@@ -109,12 +109,16 @@ def matches():
             teams_dict[match.team2_name] = match.team2_id
     sorted_teams = sorted(teams_dict.items(), key=lambda x: x[0])
 
+    # Get phase locks for display
+    phase_locks = BettingPhaseLock.get_all_locks()
+
     return render_template('matches.html',
                           rounds=rounds,
                           my_bets=my_bets,
                           now=datetime.utcnow(),
                           user=user,
-                          sorted_teams=sorted_teams)
+                          sorted_teams=sorted_teams,
+                          phase_locks=phase_locks)
 
 @main_bp.route('/matches/<int:match_id>')
 def match_detail(match_id):

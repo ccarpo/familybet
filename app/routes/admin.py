@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
-from app.models import User, Match, Bet, ScoringConfig
+from app.models import User, Match, Bet, ScoringConfig, BettingPhaseLock
 from app import db
 from app.services.scheduler import trigger_manual_sync
 from app.services.scoring import ScoringService
@@ -304,5 +304,29 @@ def calculate_tournament_points():
             flash('Turnier noch nicht beendet - keine Punkte berechnet', 'warning')
     except Exception as e:
         flash(f'Berechnung fehlgeschlagen: {str(e)}', 'error')
-    
+
     return redirect(url_for('admin.index'))
+
+@admin_bp.route('/admin/phase-locks', methods=['GET', 'POST'])
+def phase_locks():
+    """Manage betting phase locks."""
+    user = get_current_user()
+
+    if request.method == 'POST':
+        phase_name = request.form.get('phase_name', '').strip().lower()
+        action = request.form.get('action', '')
+
+        if phase_name and action in ['lock', 'unlock']:
+            is_locked = (action == 'lock')
+            BettingPhaseLock.set_lock(phase_name, is_locked, user.id)
+            status = 'gesperrt' if is_locked else 'geöffnet'
+            flash(f'{phase_name.title()} wurde {status}', 'success')
+
+        return redirect(url_for('admin.phase_locks'))
+
+    # Get all phase locks
+    phase_locks = BettingPhaseLock.get_all_locks()
+
+    return render_template('admin/phase_locks.html',
+                          phase_locks=phase_locks,
+                          user=user)

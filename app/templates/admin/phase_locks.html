@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Tipprunden verwalten - FamilyBet{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold">🔒 Tipprunden verwalten</h1>
+        <a href="{{ url_for('admin.index') }}" class="text-blue-600 hover:underline">← Zurück zu Admin</a>
+    </div>
+
+    <p class="text-gray-600">
+        Hier können Sie die einzelnen Turnierphasen für das Tippen sperren oder öffnen.
+        Wenn eine Phase gesperrt ist, können keine Tipps mehr für Spiele dieser Phase abgegeben werden.
+    </p>
+
+    <!-- Phase Locks Table -->
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left">Phase</th>
+                    <th class="px-4 py-3 text-center">Status</th>
+                    <th class="px-4 py-3 text-center">Gesperrt am</th>
+                    <th class="px-4 py-3 text-center">Aktion</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for phase_key, phase_info in phase_locks.items() %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 font-medium">{{ phase_info.label }}</td>
+                    <td class="px-4 py-3 text-center">
+                        {% if phase_info.is_locked %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                🔒 Gesperrt
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                ✅ Offen
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-center text-sm text-gray-500">
+                        {% if phase_info.locked_at %}
+                            {{ phase_info.locked_at.strftime('%d.%m.%Y %H:%M') }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <form method="POST" class="inline">
+                            <input type="hidden" name="phase_name" value="{{ phase_key }}">
+                            {% if phase_info.is_locked %}
+                                <input type="hidden" name="action" value="unlock">
+                                <button type="submit" class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700">
+                                    🔓 Öffnen
+                                </button>
+                            {% else %}
+                                <input type="hidden" name="action" value="lock">
+                                <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700">
+                                    🔒 Sperren
+                                </button>
+                            {% endif %}
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Info Box -->
+    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+        <h3 class="font-bold text-blue-800 mb-2">ℹ️ Hinweise:</h3>
+        <ul class="list-disc list-inside text-sm text-blue-700 space-y-1">
+            <li>Admins können immer Tipps abgeben, auch für gesperrte Phasen.</li>
+            <li>Die Sperre gilt für alle Benutzer gleichermaßen.</li>
+            <li>Bereits abgegebene Tipps bleiben erhalten.</li>
+            <li>Die Phasen müssen manuell gesperrt/geöffnet werden.</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

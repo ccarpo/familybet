@@ -35,7 +35,12 @@ def place_bet():
         return redirect(url_for('main.match_detail', match_id=match_id))
     
     match = Match.query.get_or_404(match_id)
-    
+
+    # Check if phase is locked (unless admin)
+    if not is_admin() and match.is_phase_locked():
+        flash('Tippen für diese Runde ist gesperrt', 'error')
+        return redirect(url_for('main.match_detail', match_id=match_id))
+
     # Check if match has already started (unless admin)
     if not is_admin() and match.has_started():
         flash('Spiel hat bereits begonnen - Tipp nicht mehr möglich', 'error')
@@ -207,7 +212,12 @@ def place_batch_bets():
                     match = Match.query.get(match_id)
                     if not match:
                         continue
-                    
+
+                    # Check if phase is locked (unless admin)
+                    if not is_admin() and match.is_phase_locked():
+                        skipped_count += 1
+                        continue
+
                     # Check if match has already started (unless admin)
                     if not is_admin() and match.has_started():
                         skipped_count += 1

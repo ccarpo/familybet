@@ -85,6 +85,28 @@ class Match(db.Model):
     
     def can_place_bet(self):
         return not self.has_started()
+
+    def is_phase_locked(self):
+        """Check if betting is locked for this match's phase."""
+        from app.models import BettingPhaseLock
+
+        # Determine phase from round_name
+        round_lower = self.round_name.lower()
+
+        if 'gruppe' in round_lower:
+            return BettingPhaseLock.is_phase_locked('gruppenphase')
+        elif 'sechzehntel' in round_lower or '16' in round_lower:
+            return BettingPhaseLock.is_phase_locked('sechzehntelfinale')
+        elif 'achtel' in round_lower or '8' in round_lower:
+            return BettingPhaseLock.is_phase_locked('achtelfinale')
+        elif 'viertel' in round_lower or '4' in round_lower:
+            return BettingPhaseLock.is_phase_locked('viertelfinale')
+        elif 'halb' in round_lower or 'semi' in round_lower:
+            return BettingPhaseLock.is_phase_locked('halbfinale')
+        elif 'finale' in round_lower or 'platz 3' in round_lower or 'platz 3' in round_lower:
+            return BettingPhaseLock.is_phase_locked('finale')
+
+        return False
     
     def get_winner_id(self):
         if not self.is_finished or self.team1_score is None or self.team2_score is None:
@@ -231,3 +253,71 @@ class ScoringConfig(db.Model):
     
     def __repr__(self):
         return f'<ScoringConfig Exact={self.points_exact}, Diff={self.points_diff}, Winner={self.points_winner}>'
+
+
+class BettingPhaseLock(db.Model):
+    """Stores which betting phases are locked (closed for betting)."""
+    __tablename__ = 'betting_phase_locks'
+
+    id = db.Column(db.Integer, primary_key=True)
+    phase_name = db.Column(db.String(50), unique=True, nullable=False)
+    is_locked = db.Column(db.Boolean, default=False)
+    locked_at = db.Column(db.DateTime, nullable=True)
+    locked_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Phase definitions
+    PHASES = [
+        ('gruppenphase', 'Gruppenphase'),
+        ('sechzehntelfinale', 'Sechzehntelfinale'),
+        ('achtelfinale', 'Achtelfinale'),
+        ('viertelfinale', 'Viertelfinale'),
+        ('halbfinale', 'Halbfinale'),
+        ('finale', 'Finale / Spiel um Platz 3'),
+    ]
+
+    @classmethod
+    def get_or_create(cls, phase_name):
+        lock = cls.query.filter_by(phase_name=phase_name).first()
+        if not lock:
+            lock = cls(phase_name=phase_name, is_locked=False)
+            db.session.add(lock)
+            db.session.commit()
+        return lock
+
+    @classmethod
+    def is_phase_locked(cls, phase_name):
+        """Check if a specific phase is locked."""
+        lock = cls.query.filter_by(phase_name=phase_name.lower()).first()
+        return lock.is_locked if lock else False
+
+    @classmethod
+    def get_all_locks(cls):
+        """Get all phase locks, creating defaults if needed."""
+        locks = {}
+        for phase_key, phase_label in cls.PHASES:
+            lock = cls.get_or_create(phase_key)
+            locks[phase_key] = {
+                'label': phase_label,
+                'is_locked': lock.is_locked,
+                'locked_at': lock.locked_at,
+                'updated_at': lock.updated_at
+            }
+        return locks
+
+    @classmethod
+    def set_lock(cls, phase_name, locked, user_id=None):
+        """Set lock status for a phase."""
+        lock = cls.get_or_create(phase_name.lower())
+        lock.is_locked = locked
+        if locked:
+            lock.locked_at = datetime.utcnow()
+            lock.locked_by = user_id
+        else:
+            lock.locked_at = None
+            lock.locked_by = None
+        db.session.commit()
+        return lock
+
+    def __repr__(self):
+        return f'<BettingPhaseLock {self.phase_name}: {"locked" if self.is_locked else "open"}>'

@@ -6,6 +6,22 @@
 <div class="space-y-6">
     <h1 class="text-2xl font-bold">📅 Alle Spiele</h1>
 
+    <!-- Locked Phases Warning -->
+    {% set locked_phases = [] %}
+    {% for phase_key, phase_info in phase_locks.items() %}
+        {% if phase_info.is_locked %}
+            {% set _ = locked_phases.append(phase_info.label) %}
+        {% endif %}
+    {% endfor %}
+    {% if locked_phases %}
+    <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+        <p class="text-red-800 font-semibold">
+            🔒 Das Tippen ist für folgende Runden gesperrt:
+            {{ locked_phases | join(', ') }}
+        </p>
+    </div>
+    {% endif %}
+
     <!-- Tournament Bet Form (only if tournament hasn't started) -->
     {% if rounds %}
         {% set first_round = rounds.values()|first %}

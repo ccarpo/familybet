@@ -83,7 +83,6 @@ def import_bets(data_dict):
         print(f"Found {len(matches)} matches")
 
         imported_count = 0
-        skipped_count = 0
 
         for match_key, user_tips in data_dict.items():
             # Parse match key

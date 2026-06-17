@@ -161,6 +161,7 @@ def delete_tournament(tournament_id):
 @admin_tournaments_bp.route('/admin/tournaments/<int:tournament_id>/results', methods=['GET', 'POST'])
 def enter_results(tournament_id):
     """Enter match results for manual tournaments."""
+    from datetime import datetime
     from app.models import Match
     from app.services.scoring import ScoringService
     

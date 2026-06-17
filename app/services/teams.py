@@ -4,7 +4,13 @@ This module provides centralized team-related functionality
 to ensure consistent team list handling across the application.
 """
 
+import logging
 from app.models import Match
+
+logger = logging.getLogger(__name__)
+
+# Standardized placeholder list for consistency across all functions
+PLACEHOLDER_TEAMS = {'TBD', 'TBA', '-', 'Unknown', 'Platzhalter', 'tbd', 'tba', 'unknown'}
 
 
 def get_sorted_unique_teams(include_all=False):
@@ -18,12 +24,15 @@ def get_sorted_unique_teams(include_all=False):
     
     Returns:
         List of tuples: [(team_name, team_id), ...] sorted by team_name (case-insensitive)
+        Returns empty list if database query fails
     """
-    matches = Match.query.all()
-    teams_dict = {}
+    try:
+        matches = Match.query.all()
+    except Exception as e:
+        logger.error(f"Failed to query matches in get_sorted_unique_teams: {e}")
+        return []
     
-    # Placeholder/unknown team names to filter out
-    placeholders = ('TBD', 'TBA', '-', 'Unknown', 'Platzhalter', 'tbd', 'tba')
+    teams_dict = {}
     
     for match in matches:
         for team_name, team_id in [(match.team1_name, match.team1_id), 
@@ -31,10 +40,13 @@ def get_sorted_unique_teams(include_all=False):
             if not team_name:
                 continue
             
+            # Filter out teams with invalid IDs (0 or None)
+            if not team_id:
+                continue
+            
             # Filter out placeholder teams unless include_all is True
             if not include_all:
-                team_name_lower = team_name.lower()
-                if any(p.lower() in team_name_lower for p in placeholders):
+                if is_placeholder_team(team_name):
                     continue
                 # Filter out purely numeric or very short names
                 if len(team_name.strip()) < 2:
@@ -62,7 +74,10 @@ def get_teams_from_matches(matches):
     for match in matches:
         for team_name, team_id in [(match.team1_name, match.team1_id), 
                                    (match.team2_name, match.team2_id)]:
-            if team_name and team_name not in teams_dict:
+            # Filter out teams with invalid IDs (0 or None)
+            if not team_name or not team_id:
+                continue
+            if team_name not in teams_dict:
                 teams_dict[team_name] = team_id
     
     return sorted(teams_dict.items(), key=lambda x: x[0].lower())
@@ -95,7 +110,12 @@ def is_placeholder_team(team_name):
     if not team_name:
         return True
         
-    placeholders = ('TBD', 'TBA', '-', 'Unknown', 'Platzhalter', 'tbd', 'tba', 'unknown')
-    team_name_lower = team_name.lower()
+    # Use exact matching to avoid false positives with legitimate team names
+    team_name_stripped = team_name.strip()
     
-    return any(p.lower() in team_name_lower for p in placeholders) or len(team_name.strip()) < 2
+    # Check if it's exactly a placeholder (case-insensitive)
+    if team_name_stripped.lower() in PLACEHOLDER_TEAMS:
+        return True
+    
+    # Filter out purely numeric or very short names
+    return len(team_name_stripped) < 2

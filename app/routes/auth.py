@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from app.models import User
 from app import db
+from app.services.users import get_user_by_email, get_user_by_token
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -13,7 +14,7 @@ def login():
             flash('Bitte Email eingeben', 'error')
             return render_template('login.html')
         
-        user = User.query.filter_by(email=email).first()
+        user = get_user_by_email(email)
         
         if not user:
             flash('Email nicht gefunden. Bitte Admin kontaktieren.', 'error')
@@ -33,7 +34,7 @@ def login():
 
 @auth_bp.route('/auth/<token>')
 def magic_login(token):
-    user = User.query.filter_by(magic_token=token).first()
+    user = get_user_by_token(token)
     
     if not user:
         flash('Ungültiger oder abgelaufener Login-Link', 'error')

@@ -52,8 +52,8 @@ def dashboard():
     my_rank = next((entry for entry in leaderboard if entry['user'].id == user.id), None)
 
     # Get all visible users for game overviews
-    from app.models import User
-    all_users = User.query.filter_by(is_hidden_from_leaderboard=False).order_by(User.name).all()
+    from app.services.users import get_sorted_users
+    all_users = get_sorted_users(include_hidden=False)
 
     # Get all bets for last 5 and next 5 games
     last_match_ids = [m.id for m in last_matches]
@@ -216,7 +216,7 @@ def history():
     finished_matches = Match.query.filter_by(is_finished=True).order_by(Match.match_date.desc()).all()
 
     # Get all visible users
-    all_users = User.query.filter_by(is_hidden_from_leaderboard=False).order_by(User.name).all()
+    all_users = get_sorted_users(include_hidden=False)
 
     # Get all bets for these matches
     match_ids = [m.id for m in finished_matches]
@@ -340,8 +340,8 @@ def groups():
     # Get user bets
     my_bets = {bet.match_id: bet for bet in Bet.query.filter_by(user_id=user.id).all()}
 
-    # Get all users for displaying their bets
-    all_users = User.query.order_by(User.name).all()
+    # Get all users for displaying their bets (include all for now, template filters hidden)
+    all_users = get_sorted_users(include_hidden=True)
 
     # Get all bets for group matches (for displaying other users' bets)
     group_match_ids = [m.id for m in group_matches]

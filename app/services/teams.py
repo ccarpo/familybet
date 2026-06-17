@@ -58,8 +58,6 @@ def get_sorted_unique_teams(include_all=False):
     
     # Return sorted list by team name (case-insensitive)
     result = sorted(teams_dict.items(), key=lambda x: x[0].lower())
-    print(f"[DEBUG teams.py] Extracted {len(result)} unique teams from {len(matches)} matches")
-    print(f"[DEBUG teams.py] First 5 teams: {result[:5]}")
     return result
 
 

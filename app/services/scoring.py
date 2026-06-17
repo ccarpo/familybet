@@ -28,10 +28,8 @@ class ScoringService:
         Args:
             include_hidden: If True, include users hidden from leaderboard
         """
-        query = User.query
-        if not include_hidden:
-            query = query.filter_by(is_hidden_from_leaderboard=False)
-        users = query.all()
+        from app.services.users import get_sorted_users
+        users = get_sorted_users(include_hidden=include_hidden)
 
         leaderboard = []
         for user in users:

@@ -32,8 +32,9 @@ def index():
     finished_matches = Match.query.filter_by(is_finished=True).count()
     total_bets = Bet.query.count()
     
-    # Get all users
-    users = User.query.all()
+    # Get all users (sorted alphabetically)
+    from app.services.users import get_sorted_users
+    users = get_sorted_users(include_hidden=True)
     
     # Get current scoring config
     scoring_config = ScoringConfig.get_current()
@@ -87,8 +88,8 @@ def add_user():
     
     # Check if email already exists
     if email:
-        existing = User.query.filter_by(email=email).first()
-        if existing:
+        from app.services.users import email_exists
+        if email_exists(email):
             flash('Email wird bereits verwendet', 'error')
             return redirect(url_for('admin.index'))
     
@@ -228,8 +229,8 @@ def edit_user(user_id):
         
         # Check if email is already used by another user
         if email:
-            existing = User.query.filter(User.email == email, User.id != user_id).first()
-            if existing:
+            from app.services.users import email_exists
+            if email_exists(email, exclude_user_id=user_id):
                 flash('Email wird bereits verwendet', 'error')
                 return render_template('admin/edit_user.html', target_user=target_user)
         

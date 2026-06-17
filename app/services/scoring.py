@@ -5,9 +5,24 @@ from app.models import User, Match, Bet, TournamentBet
 class ScoringService:
     
     @staticmethod
-    def recalculate_all_match_points():
-        """Recalculate points for all bets on finished matches"""
-        finished_matches = Match.query.filter_by(is_finished=True).all()
+    def recalculate_all_match_points(tournament_id=None):
+        """Recalculate points for all bets on finished matches
+        
+        Args:
+            tournament_id: Optional tournament ID to scope recalculation
+        """
+        from app.models import Tournament
+        
+        # Build match query
+        query = Match.query.filter_by(is_finished=True)
+        
+        # Filter by tournament if specified
+        if tournament_id:
+            tournament = Tournament.query.get(tournament_id)
+            if tournament and tournament.league_shortcut:
+                query = query.filter_by(league_shortcut=tournament.league_shortcut)
+        
+        finished_matches = query.all()
         
         for match in finished_matches:
             if match.team1_score is None or match.team2_score is None:
@@ -22,18 +37,27 @@ class ScoringService:
         return True
     
     @staticmethod
-    def get_leaderboard(include_hidden=False):
+    def get_leaderboard(include_hidden=False, tournament_id=None):
         """Get sorted leaderboard with stats
 
         Args:
             include_hidden: If True, include users hidden from leaderboard
+            tournament_id: Optional tournament ID for tournament-scoped leaderboard
         """
         from app.services.users import get_sorted_users
+        from app.models import Tournament
+        
         users = get_sorted_users(include_hidden=include_hidden)
+        
+        # Get active tournament if none specified
+        if tournament_id is None:
+            active_tournament = Tournament.get_active()
+            if active_tournament:
+                tournament_id = active_tournament.id
 
         leaderboard = []
         for user in users:
-            stats = ScoringService.get_user_stats(user.id)
+            stats = ScoringService.get_user_stats(user.id, tournament_id=tournament_id)
             leaderboard.append({
                 'user': user,
                 'total_points': stats['total_points'],
@@ -53,11 +77,40 @@ class ScoringService:
         return leaderboard
     
     @staticmethod
-    def get_user_stats(user_id):
-        """Get detailed stats for a user"""
-        from app.models import ScoringConfig
-        bets = Bet.query.filter_by(user_id=user_id).all()
-        config = ScoringConfig.get_current()
+    def get_user_stats(user_id, tournament_id=None):
+        """Get detailed stats for a user
+        
+        Args:
+            user_id: User ID to get stats for
+            tournament_id: Optional tournament ID for tournament-scoped stats
+        """
+        from app.models import ScoringConfig, Tournament, Match
+        
+        # Get active tournament if none specified
+        if tournament_id is None:
+            active_tournament = Tournament.get_active()
+            if active_tournament:
+                tournament_id = active_tournament.id
+        
+        # Get scoring config for tournament
+        config = ScoringConfig.get_current(tournament_id=tournament_id)
+        
+        # Filter bets by tournament (through matches)
+        if tournament_id:
+            # Get tournament for league_shortcut
+            tournament = Tournament.query.get(tournament_id)
+            if tournament and tournament.league_shortcut:
+                # Filter bets to matches of this tournament
+                match_ids = [m.id for m in Match.query.filter_by(
+                    league_shortcut=tournament.league_shortcut
+                ).all()]
+                bets = Bet.query.filter_by(user_id=user_id).filter(
+                    Bet.match_id.in_(match_ids)
+                ).all()
+            else:
+                bets = Bet.query.filter_by(user_id=user_id).all()
+        else:
+            bets = Bet.query.filter_by(user_id=user_id).all()
         
         total_points = sum(bet.points_earned or 0 for bet in bets)
         

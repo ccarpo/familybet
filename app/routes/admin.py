@@ -36,8 +36,12 @@ def index():
     from app.services.users import get_sorted_users
     users = get_sorted_users(include_hidden=True)
     
-    # Get current scoring config
-    scoring_config = ScoringConfig.get_current()
+    # Get current scoring config (for active tournament if any)
+    from app.models import Tournament
+    active_tournament = Tournament.get_active()
+    scoring_config = ScoringConfig.get_current(
+        tournament_id=active_tournament.id if active_tournament else None
+    )
     
     return render_template('admin/index.html',
                           user=user,
@@ -62,11 +66,16 @@ def update_scoring():
             flash('Punkte können nicht negativ sein', 'error')
             return redirect(url_for('admin.index'))
         
-        # Create new config
-        ScoringConfig.create_new(points_exact, points_diff, points_winner)
+        # Get active tournament for tournament-specific config
+        from app.models import Tournament
+        active_tournament = Tournament.get_active()
+        tournament_id = active_tournament.id if active_tournament else None
         
-        # Recalculate all points with new config
-        ScoringService.recalculate_all_match_points()
+        # Create new config for this tournament
+        ScoringConfig.create_new(points_exact, points_diff, points_winner, tournament_id=tournament_id)
+        
+        # Recalculate all points with new config (for this tournament)
+        ScoringService.recalculate_all_match_points(tournament_id=tournament_id)
         
         flash(f'Punktesystem aktualisiert: Exakt={points_exact}, Diff={points_diff}, Sieger={points_winner}. Alle Punkte wurden neu berechnet.', 'success')
     except ValueError:

@@ -208,10 +208,11 @@ class TournamentBet(db.Model):
 
 
 class ScoringConfig(db.Model):
-    """Configurable scoring system for match bets"""
+    """Configurable scoring system for match bets (per tournament)"""
     __tablename__ = 'scoring_config'
     
     id = db.Column(db.Integer, primary_key=True)
+    tournament_id = db.Column(db.Integer, db.ForeignKey('tournaments.id'), nullable=True)
     
     # Points for each prediction type
     points_exact = db.Column(db.Integer, default=3)    # Exact score prediction
@@ -224,12 +225,24 @@ class ScoringConfig(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     @staticmethod
-    def get_current():
-        """Get the current active scoring config, or create default if none exists"""
-        config = ScoringConfig.query.filter_by(is_active=True).first()
+    def get_current(tournament_id=None):
+        """Get the current active scoring config, or create default if none exists.
+        
+        Args:
+            tournament_id: Optional tournament ID for per-tournament config
+        """
+        query = ScoringConfig.query.filter_by(is_active=True)
+        if tournament_id:
+            query = query.filter_by(tournament_id=tournament_id)
+        else:
+            query = query.filter_by(tournament_id=None)
+        
+        config = query.first()
+        
         if not config:
             # Create default config
             config = ScoringConfig(
+                tournament_id=tournament_id,
                 points_exact=3,
                 points_diff=2,
                 points_winner=1,
@@ -240,13 +253,24 @@ class ScoringConfig(db.Model):
         return config
     
     @staticmethod
-    def create_new(points_exact, points_diff, points_winner):
+    def get_for_tournament(tournament_id):
+        """Get scoring config for a specific tournament."""
+        return ScoringConfig.get_current(tournament_id=tournament_id)
+    
+    @staticmethod
+    def create_new(points_exact, points_diff, points_winner, tournament_id=None):
         """Create a new scoring config and deactivate old ones"""
-        # Deactivate all existing configs
-        ScoringConfig.query.update({'is_active': False})
+        # Deactivate all existing configs (optionally scoped to tournament)
+        query = ScoringConfig.query.filter_by(is_active=True)
+        if tournament_id:
+            query = query.filter_by(tournament_id=tournament_id)
+        else:
+            query = query.filter_by(tournament_id=None)
+        query.update({'is_active': False})
         
         # Create new active config
         new_config = ScoringConfig(
+            tournament_id=tournament_id,
             points_exact=points_exact,
             points_diff=points_diff,
             points_winner=points_winner,

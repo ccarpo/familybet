@@ -194,8 +194,12 @@ def match_detail(match_id):
     if match.is_finished:
         all_bets = Bet.query.filter_by(match_id=match_id).join(User).all()
     
-    # Get current scoring config
-    scoring_config = ScoringConfig.get_current()
+    # Get current scoring config (for active tournament)
+    from app.models import Tournament
+    active_tournament = Tournament.get_active()
+    scoring_config = ScoringConfig.get_current(
+        tournament_id=active_tournament.id if active_tournament else None
+    )
     
     return render_template('match_detail.html',
                           match=match,
@@ -240,8 +244,13 @@ def leaderboard():
     if not user:
         return redirect(url_for('auth.login'))
 
-    entries = ScoringService.get_leaderboard()
-    scoring_config = ScoringConfig.get_current()
+    # Get active tournament for leaderboard
+    from app.models import Tournament
+    active_tournament = Tournament.get_active()
+    tournament_id = active_tournament.id if active_tournament else None
+    
+    entries = ScoringService.get_leaderboard(tournament_id=tournament_id)
+    scoring_config = ScoringConfig.get_current(tournament_id=tournament_id)
 
     return render_template('leaderboard.html',
                           entries=entries,

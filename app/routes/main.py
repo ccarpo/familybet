@@ -35,12 +35,23 @@ def dashboard():
     if not user:
         return redirect(url_for('auth.login'))
 
+    # Get active tournament for filtering
+    from app.models import Tournament
+    active_tournament = Tournament.get_active()
+    league_shortcut = active_tournament.get_league_shortcut() if active_tournament else None
+    
     # Get upcoming matches (next 5 that haven't started)
     now = datetime.utcnow()
-    upcoming = Match.query.filter(Match.match_date > now).order_by(Match.match_date).limit(5).all()
+    upcoming_query = Match.query.filter(Match.match_date > now)
+    if league_shortcut:
+        upcoming_query = upcoming_query.filter_by(league_shortcut=league_shortcut)
+    upcoming = upcoming_query.order_by(Match.match_date).limit(5).all()
 
     # Get last 5 finished matches
-    last_matches = Match.query.filter_by(is_finished=True).order_by(Match.match_date.desc()).limit(5).all()
+    last_query = Match.query.filter_by(is_finished=True)
+    if league_shortcut:
+        last_query = last_query.filter_by(league_shortcut=league_shortcut)
+    last_matches = last_query.order_by(Match.match_date.desc()).limit(5).all()
 
     # Get user's recent bets
     my_bets = Bet.query.filter_by(user_id=user.id).order_by(Bet.created_at.desc()).limit(5).all()
@@ -151,8 +162,16 @@ def matches():
     if not user:
         return redirect(url_for('auth.login'))
 
+    # Get active tournament for filtering
+    from app.models import Tournament
+    active_tournament = Tournament.get_active()
+    league_shortcut = active_tournament.get_league_shortcut() if active_tournament else None
+
     # Get all matches grouped by round
-    all_matches = Match.query.order_by(Match.match_date).all()
+    matches_query = Match.query
+    if league_shortcut:
+        matches_query = matches_query.filter_by(league_shortcut=league_shortcut)
+    all_matches = matches_query.order_by(Match.match_date).all()
 
     # Group by round
     rounds = {}
@@ -162,8 +181,12 @@ def matches():
             rounds[round_name] = []
         rounds[round_name].append(match)
 
-    # Get user's bets for quick lookup
-    my_bets = {bet.match_id: bet for bet in Bet.query.filter_by(user_id=user.id).all()}
+    # Get user's bets for quick lookup (also filtered by tournament)
+    if league_shortcut:
+        match_ids = [m.id for m in all_matches]
+        my_bets = {bet.match_id: bet for bet in Bet.query.filter_by(user_id=user.id).filter(Bet.match_id.in_(match_ids)).all()} if match_ids else {}
+    else:
+        my_bets = {bet.match_id: bet for bet in Bet.query.filter_by(user_id=user.id).all()}
 
     # Build deduplicated, sorted teams list for tournament bet dropdown
     from app.services.teams import get_sorted_unique_teams
@@ -216,8 +239,16 @@ def history():
     if not user:
         return redirect(url_for('auth.login'))
 
-    # Get all finished matches (not just last 5)
-    finished_matches = Match.query.filter_by(is_finished=True).order_by(Match.match_date.desc()).all()
+    # Get active tournament for filtering
+    from app.models import Tournament
+    active_tournament = Tournament.get_active()
+    league_shortcut = active_tournament.get_league_shortcut() if active_tournament else None
+
+    # Get all finished matches (not just last 5) for active tournament
+    matches_query = Match.query.filter_by(is_finished=True)
+    if league_shortcut:
+        matches_query = matches_query.filter_by(league_shortcut=league_shortcut)
+    finished_matches = matches_query.order_by(Match.match_date.desc()).all()
 
     # Get all visible users
     all_users = get_sorted_users(include_hidden=False)
@@ -298,8 +329,16 @@ def groups():
     if not user:
         return redirect(url_for('auth.login'))
 
-    # Get all group matches
-    group_matches = Match.query.filter_by(round_type='group').order_by(Match.match_date).all()
+    # Get active tournament for filtering
+    from app.models import Tournament
+    active_tournament = Tournament.get_active()
+    league_shortcut = active_tournament.get_league_shortcut() if active_tournament else None
+
+    # Get group matches for active tournament
+    group_query = Match.query.filter_by(round_type='group')
+    if league_shortcut:
+        group_query = group_query.filter_by(league_shortcut=league_shortcut)
+    group_matches = group_query.order_by(Match.match_date).all()
 
     # Group by round_name
     groups_data = {}

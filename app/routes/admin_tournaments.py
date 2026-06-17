@@ -88,7 +88,7 @@ def tournament_detail(tournament_id):
         teams_by_group[group.id] = []
     for team in teams:
         if team.group_id in teams_by_group:
-            teams_by_group[group.id].append(team)
+            teams_by_group[team.group_id].append(team)
     
     return render_template('admin/tournament_detail.html',
                           tournament=tournament,

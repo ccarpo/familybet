@@ -118,7 +118,51 @@ class Match(db.Model):
         return min(int(elapsed) + 1, 120)
     
     def can_place_bet(self):
-        return not self.has_started()
+        """Check if betting is still allowed for this match."""
+        # Always blocked after match starts
+        if self.has_started():
+            return False
+        # Check round-based deadline if tournament uses it
+        try:
+            from app.models import Tournament, TournamentRound
+            tournament = Tournament.query.filter_by(
+                league_shortcut=self.league_shortcut
+            ).first()
+            if not tournament:
+                # Try provider_config
+                from sqlalchemy import or_
+                tournaments = Tournament.query.all()
+                for t in tournaments:
+                    if t.get_league_shortcut() == self.league_shortcut:
+                        tournament = t
+                        break
+            if tournament and tournament.deadline_type == 'round_deadline':
+                # Find matching TournamentRound by phase_key
+                round_lower = self.round_name.lower()
+                if 'gruppe' in round_lower:
+                    phase_key = 'gruppenphase'
+                elif 'sechzehntel' in round_lower:
+                    phase_key = 'sechzehntelfinale'
+                elif 'achtel' in round_lower:
+                    phase_key = 'achtelfinale'
+                elif 'viertel' in round_lower:
+                    phase_key = 'viertelfinale'
+                elif 'halb' in round_lower or 'semi' in round_lower:
+                    phase_key = 'halbfinale'
+                elif 'finale' in round_lower:
+                    phase_key = 'finale'
+                else:
+                    phase_key = None
+                if phase_key:
+                    t_round = TournamentRound.query.filter_by(
+                        tournament_id=tournament.id,
+                        phase_key=phase_key
+                    ).first()
+                    if t_round and t_round.is_deadline_passed():
+                        return False
+        except Exception:
+            pass
+        return True
 
     def is_phase_locked(self):
         """Check if betting is locked for this match's phase."""
@@ -413,6 +457,9 @@ class Tournament(db.Model):
     teams_per_group = db.Column(db.Integer, default=4)
     has_knockout_stage = db.Column(db.Boolean, default=True)
     
+    # Deadline type: 'match_start' (lock at kickoff) or 'round_deadline' (lock at fixed date per round)
+    deadline_type = db.Column(db.String(20), default='match_start')
+    
     # Metadata
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -497,6 +544,13 @@ class TournamentRound(db.Model):
     round_type = db.Column(db.String(20), nullable=False)  # 'group', 'knockout', 'special'
     phase_key = db.Column(db.String(50))  # 'gruppenphase', 'achtelfinale' (for locking)
     order_index = db.Column(db.Integer, default=0)
+    deadline = db.Column(db.DateTime, nullable=True)  # Round-based deadline (optional)
+    
+    def is_deadline_passed(self):
+        """Check if the round deadline has passed."""
+        if self.deadline is None:
+            return False
+        return datetime.utcnow() >= self.deadline
     
     def __repr__(self):
         return f'<TournamentRound {self.name} ({self.round_type})>'

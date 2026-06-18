@@ -27,6 +27,26 @@
     </div>
     {% endif %}
 
+    <!-- Round Deadline Info -->
+    {% if round_deadlines %}
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <p class="font-semibold text-blue-800 mb-2">⏰ Tipp-Deadlines (Runden-basiert)</p>
+        <div class="space-y-1">
+            {% for phase_key, t_round in round_deadlines.items() %}
+            <div class="flex items-center gap-3 text-sm">
+                {% if t_round.is_deadline_passed() %}
+                <span class="text-red-600">🔒 {{ t_round.name }}:</span>
+                <span class="text-red-600 font-medium">Abgelaufen ({{ t_round.deadline.strftime('%d.%m.%Y %H:%M') }})</span>
+                {% else %}
+                <span class="text-green-700">✅ {{ t_round.name }}:</span>
+                <span class="text-green-700 font-medium">bis {{ t_round.deadline.strftime('%d.%m.%Y %H:%M') }} Uhr</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
     <!-- KO Rounds Summary -->
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {% set ko_rounds = {

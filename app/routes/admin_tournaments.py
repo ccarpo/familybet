@@ -224,6 +224,38 @@ def enter_results(tournament_id):
                           user=get_current_user())
 
 
+@admin_tournaments_bp.route('/admin/tournaments/<int:tournament_id>/deadlines', methods=['GET', 'POST'])
+def tournament_deadlines(tournament_id):
+    """Manage betting deadlines for tournament rounds."""
+    tournament = Tournament.query.get_or_404(tournament_id)
+    rounds = TournamentRound.query.filter_by(tournament_id=tournament_id).order_by(TournamentRound.order_index).all()
+    
+    if request.method == 'POST':
+        # Update deadline_type
+        deadline_type = request.form.get('deadline_type', 'match_start')
+        tournament.deadline_type = deadline_type
+        
+        # Update round deadlines
+        for round in rounds:
+            deadline_str = request.form.get(f'deadline_{round.id}', '').strip()
+            if deadline_str:
+                try:
+                    round.deadline = datetime.strptime(deadline_str, '%Y-%m-%dT%H:%M')
+                except ValueError:
+                    pass
+            else:
+                round.deadline = None
+        
+        db.session.commit()
+        flash('Deadline-Einstellungen gespeichert', 'success')
+        return redirect(url_for('admin_tournaments.tournament_deadlines', tournament_id=tournament_id))
+    
+    return render_template('admin/tournament_deadlines.html',
+                           tournament=tournament,
+                           rounds=rounds,
+                           user=get_current_user())
+
+
 @admin_tournaments_bp.route('/admin/tournaments/<int:tournament_id>/setup-groups', methods=['GET', 'POST'])
 def setup_groups(tournament_id):
     """Setup groups for a tournament."""

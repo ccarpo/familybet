@@ -83,6 +83,27 @@
         </p>
     </div>
 
+    <!-- Deadline Settings -->
+    <div class="bg-white rounded-lg shadow-md p-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="text-lg font-bold">⏰ Tipp-Deadlines</h2>
+                <p class="text-sm text-gray-500 mt-1">
+                    Aktuell: 
+                    {% if tournament.deadline_type == 'round_deadline' %}
+                        <span class="text-blue-600 font-medium">Runden-Deadline</span>
+                    {% else %}
+                        <span class="text-gray-600">Spielstart</span>
+                    {% endif %}
+                </p>
+            </div>
+            <a href="{{ url_for('admin_tournaments.tournament_deadlines', tournament_id=tournament.id) }}"
+               class="text-sm bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                Deadlines verwalten
+            </a>
+        </div>
+    </div>
+
     <!-- Results Entry -->
     {% if tournament.provider_type == 'manual' %}
     <div class="bg-white rounded-lg shadow-md p-4">

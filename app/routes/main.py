@@ -213,13 +213,23 @@ def matches():
     # Get phase locks for display
     phase_locks = BettingPhaseLock.get_all_locks()
 
+    # Get round deadlines if tournament uses round_deadline mode
+    from app.models import TournamentRound
+    round_deadlines = {}
+    if active_tournament and active_tournament.deadline_type == 'round_deadline':
+        for tr in TournamentRound.query.filter_by(tournament_id=active_tournament.id).all():
+            if tr.phase_key and tr.deadline:
+                round_deadlines[tr.phase_key] = tr
+
     return render_template('matches.html',
                           rounds=rounds,
                           my_bets=my_bets,
                           now=datetime.utcnow(),
                           user=user,
                           sorted_teams=sorted_teams,
-                          phase_locks=phase_locks)
+                          phase_locks=phase_locks,
+                          round_deadlines=round_deadlines,
+                          active_tournament=active_tournament)
 
 @main_bp.route('/matches/<int:match_id>')
 def match_detail(match_id):

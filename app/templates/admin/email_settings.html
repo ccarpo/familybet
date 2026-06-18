@@ -55,7 +55,13 @@
                 <input type="checkbox" name="mail_use_tls" id="mail_use_tls"
                        {% if mail_config.use_tls %}checked{% endif %}
                        class="w-4 h-4 text-blue-600 rounded">
-                <label for="mail_use_tls" class="text-sm font-medium">TLS verwenden</label>
+                <label for="mail_use_tls" class="text-sm font-medium">TLS (Port 587)</label>
+            </div>
+            <div class="flex items-center gap-2">
+                <input type="checkbox" name="mail_use_ssl" id="mail_use_ssl"
+                       {% if mail_config.use_ssl %}checked{% endif %}
+                       class="w-4 h-4 text-blue-600 rounded">
+                <label for="mail_use_ssl" class="text-sm font-medium">SSL (Port 465)</label>
             </div>
         </div>
         <p class="text-xs text-gray-500">

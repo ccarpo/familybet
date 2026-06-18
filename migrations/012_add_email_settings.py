@@ -19,6 +19,7 @@ def migrate(conn):
             mail_server VARCHAR(200),
             mail_port INTEGER,
             mail_use_tls BOOLEAN DEFAULT 1,
+            mail_use_ssl BOOLEAN DEFAULT 0,
             mail_username VARCHAR(200),
             mail_password VARCHAR(200),
             mail_sender VARCHAR(200),

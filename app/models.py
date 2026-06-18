@@ -449,6 +449,7 @@ class EmailSettings(db.Model):
     mail_server = db.Column(db.String(200), nullable=True)
     mail_port = db.Column(db.Integer, nullable=True)
     mail_use_tls = db.Column(db.Boolean, default=True)
+    mail_use_ssl = db.Column(db.Boolean, default=False)
     mail_username = db.Column(db.String(200), nullable=True)
     mail_password = db.Column(db.String(200), nullable=True)
     mail_sender = db.Column(db.String(200), nullable=True)

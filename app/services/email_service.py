@@ -39,6 +39,8 @@ def _apply_smtp_from_db():
         current_app.config['MAIL_DEFAULT_SENDER'] = s.mail_sender
     current_app.extensions['mail'].use_tls = s.mail_use_tls
     current_app.config['MAIL_USE_TLS'] = s.mail_use_tls
+    current_app.extensions['mail'].use_ssl = s.mail_use_ssl
+    current_app.config['MAIL_USE_SSL'] = s.mail_use_ssl
 
 
 def send_email(to, subject, html_body, text_body=None, force=False):

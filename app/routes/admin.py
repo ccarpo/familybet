@@ -610,6 +610,7 @@ def email_settings():
             port_str = request.form.get('mail_port', '').strip()
             settings.mail_port = int(port_str) if port_str.isdigit() else None
             settings.mail_use_tls = 'mail_use_tls' in request.form
+            settings.mail_use_ssl = 'mail_use_ssl' in request.form
             settings.mail_username = request.form.get('mail_username', '').strip() or None
             pwd = request.form.get('mail_password', '').strip()
             if pwd:
@@ -638,6 +639,7 @@ def email_settings():
         'username': settings.mail_username or current_app.config.get('MAIL_USERNAME', ''),
         'sender': settings.mail_sender or current_app.config.get('MAIL_DEFAULT_SENDER', ''),
         'use_tls': settings.mail_use_tls,
+        'use_ssl': settings.mail_use_ssl,
     }
 
     users_with_email = User.query.filter(

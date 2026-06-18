@@ -26,7 +26,7 @@
                     <div class="relative group">
                         <button class="hover:text-blue-200 text-sm flex items-center gap-1 bg-blue-700 px-3 py-1 rounded">
                             {% if user_selected_tournament %}
-                                🏆 {{ user_selected_tournament.short_name }} ▼
+                                🏆 {{ user_selected_tournament.name }} ▼
                             {% else %}
                                 🏆 Turnier wählen ▼
                             {% endif %}
@@ -59,6 +59,7 @@
                         </div>
                     </div>
                     <a href="{{ url_for('main.matches') }}" class="hover:text-blue-200 text-sm">Tippen</a>
+                    <a href="{{ url_for('main.special_tips') }}" class="hover:text-blue-200 text-sm">Spezial-Tipps</a>
                     <a href="{{ url_for('main.history') }}" class="hover:text-blue-200 text-sm">Historie</a>
                     <a href="{{ url_for('main.profile') }}" class="hover:text-blue-200 text-sm">Profil</a>
                     {% if session.is_admin %}

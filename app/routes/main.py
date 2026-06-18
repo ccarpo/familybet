@@ -523,6 +523,35 @@ def _show_ko_round(round_keyword, display_name):
                           phase_locks=phase_locks)
 
 
+@main_bp.route('/special-tips')
+def special_tips():
+    """Show all players' tournament bets (winner + semifinalists)."""
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('auth.login'))
+
+    from app.models import Tournament, TournamentBet
+    
+    # Get active tournament
+    if user.selected_tournament_id:
+        active_tournament = Tournament.query.get(user.selected_tournament_id)
+    else:
+        active_tournament = Tournament.query.filter_by(is_active=True).first()
+
+    # Get all users with their tournament bets
+    all_users = User.query.filter_by(is_hidden_from_leaderboard=False).order_by(User.name).all()
+    bets_by_user = {}
+    for u in all_users:
+        tb = TournamentBet.query.filter_by(user_id=u.id).first()
+        bets_by_user[u.id] = tb
+
+    return render_template('special_tips.html',
+                           user=user,
+                           all_users=all_users,
+                           bets_by_user=bets_by_user,
+                           active_tournament=active_tournament)
+
+
 @main_bp.route('/select-tournament/<int:tournament_id>', methods=['POST'])
 def select_tournament(tournament_id):
     """User selects which tournament to view."""

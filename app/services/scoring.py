@@ -72,9 +72,14 @@ class ScoringService:
         # Sort by total points descending
         leaderboard.sort(key=lambda x: x['total_points'], reverse=True)
 
-        # Add rank
-        for i, entry in enumerate(leaderboard, 1):
-            entry['rank'] = i
+        # Add rank with tied places (1, 2, 2, 4 not 1, 2, 3, 4)
+        for i, entry in enumerate(leaderboard):
+            if i == 0:
+                entry['rank'] = 1
+            elif entry['total_points'] == leaderboard[i - 1]['total_points']:
+                entry['rank'] = leaderboard[i - 1]['rank']
+            else:
+                entry['rank'] = i + 1
 
         return leaderboard
     

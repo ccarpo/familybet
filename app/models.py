@@ -101,6 +101,22 @@ class Match(db.Model):
     def has_started(self):
         return datetime.utcnow() >= self.match_date
     
+    def is_live(self):
+        """Check if match is currently live (started but not finished, within 120 min window)."""
+        if self.is_finished:
+            return False
+        now = datetime.utcnow()
+        if now < self.match_date:
+            return False
+        return now <= self.match_date + timedelta(minutes=120)
+    
+    def live_minute(self):
+        """Approximate current match minute (1-120)."""
+        if not self.is_live():
+            return None
+        elapsed = (datetime.utcnow() - self.match_date).total_seconds() / 60
+        return min(int(elapsed) + 1, 120)
+    
     def can_place_bet(self):
         return not self.has_started()
 

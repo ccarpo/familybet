@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Spezial-Tipps - FamilyBet{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold">🏆 Spezial-Tipps</h1>
+        {% if active_tournament %}
+        <span class="text-sm text-gray-500">{{ active_tournament.name }}</span>
+        {% endif %}
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b">
+                <tr>
+                    <th class="px-4 py-3 text-left font-semibold text-gray-600">Spieler</th>
+                    <th class="px-4 py-3 text-left font-semibold text-gray-600">🥇 Weltmeister</th>
+                    <th class="px-4 py-3 text-left font-semibold text-gray-600">🥈 Halbfinalist 1</th>
+                    <th class="px-4 py-3 text-left font-semibold text-gray-600">🥈 Halbfinalist 2</th>
+                    <th class="px-4 py-3 text-left font-semibold text-gray-600">🥈 Halbfinalist 3</th>
+                    <th class="px-4 py-3 text-center font-semibold text-gray-600">Punkte</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for u in all_users %}
+                {% set bet = bets_by_user[u.id] %}
+                <tr class="hover:bg-gray-50 {% if u.id == user.id %}bg-blue-50{% endif %}">
+                    <td class="px-4 py-3 font-medium">
+                        {{ u.name }}
+                        {% if u.id == user.id %}<span class="text-xs text-blue-500">(du)</span>{% endif %}
+                    </td>
+                    {% if bet %}
+                    <td class="px-4 py-3 font-semibold text-amber-700">
+                        {{ bet.winner_team_name or '-' }}
+                    </td>
+                    <td class="px-4 py-3 text-gray-700">{{ bet.semifinalist1_name or '-' }}</td>
+                    <td class="px-4 py-3 text-gray-700">{{ bet.semifinalist2_name or '-' }}</td>
+                    <td class="px-4 py-3 text-gray-700">{{ bet.semifinalist3_name or '-' }}</td>
+                    <td class="px-4 py-3 text-center">
+                        {% if bet.points_earned %}
+                        <span class="font-bold text-green-600">{{ bet.points_earned }} P</span>
+                        {% else %}
+                        <span class="text-gray-400">–</span>
+                        {% endif %}
+                    </td>
+                    {% else %}
+                    <td colspan="5" class="px-4 py-3 text-gray-400 italic">Noch kein Turniertipp abgegeben</td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -2,48 +2,115 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from flask import current_app
 import atexit
+from datetime import datetime, timedelta
 
 scheduler = None
+_app_ref = None
+
 
 def init_scheduler(app):
     """Initialize the background scheduler for periodic tasks"""
-    global scheduler
+    global scheduler, _app_ref
     
     if scheduler is not None:
         return
     
+    _app_ref = app
     scheduler = BackgroundScheduler()
     
-    # Schedule match sync every 24 hours
+    # Daily full sync (new matches, schedule updates)
     scheduler.add_job(
         func=sync_matches_job,
         trigger=IntervalTrigger(hours=24),
-        id='sync_matches',
-        name='Sync matches from OpenLigaDB',
+        id='sync_matches_daily',
+        name='Daily sync from OpenLigaDB',
+        replace_existing=True
+    )
+    
+    # Smart sync every 15 minutes - only runs full sync when matches are live
+    scheduler.add_job(
+        func=smart_sync_job,
+        trigger=IntervalTrigger(minutes=15),
+        id='sync_matches_live',
+        name='Live match sync (15min)',
         replace_existing=True
     )
     
     scheduler.start()
-    
-    # Shut down the scheduler when the app exits
     atexit.register(lambda: scheduler.shutdown())
-    
-    print("Scheduler initialized")
+    print("Scheduler initialized (daily + 15-min live sync)")
+
+
+def _has_live_matches():
+    """Check if any match is currently live (within 120 min window)."""
+    try:
+        from app.models import Match
+        now = datetime.utcnow()
+        window_start = now - timedelta(minutes=120)
+        live = Match.query.filter(
+            Match.is_finished == False,
+            Match.match_date >= window_start,
+            Match.match_date <= now
+        ).first()
+        return live is not None
+    except Exception:
+        return False
+
+
+def smart_sync_job():
+    """Sync only when matches are currently live."""
+    global _app_ref
+    if _app_ref is None:
+        return
+    with _app_ref.app_context():
+        try:
+            if not _has_live_matches():
+                return  # No live matches - skip this tick
+            
+            from app.services.openligadb import OpenLigaDBClient
+            from app.services.scoring import ScoringService
+            from app.models import Tournament
+            
+            print(f"[Live Sync] Live matches detected - syncing at {datetime.utcnow().strftime('%H:%M')}")
+            
+            # Sync all active tournaments
+            active_tournaments = Tournament.query.filter_by(is_active=True).all()
+            for tournament in active_tournaments:
+                if tournament.provider_type != 'manual':
+                    try:
+                        client = OpenLigaDBClient()
+                        client.sync_matches()
+                    except Exception as e:
+                        print(f"[Live Sync] Failed for {tournament.name}: {e}")
+            
+            # Recalculate points for newly finished matches
+            ScoringService.recalculate_all_match_points()
+            print("[Live Sync] Done")
+        except Exception as e:
+            print(f"[Live Sync] Error: {e}")
+
 
 def sync_matches_job():
-    """Job to sync matches from OpenLigaDB"""
-    with current_app.app_context():
+    """Daily job to sync matches from OpenLigaDB"""
+    global _app_ref
+    if _app_ref is None:
+        return
+    with _app_ref.app_context():
         try:
             from app.services.openligadb import OpenLigaDBClient
             client = OpenLigaDBClient()
             synced = client.sync_matches()
-            print(f"Scheduled sync completed: {synced} new matches")
+            print(f"[Daily Sync] Completed: {synced} new matches")
         except Exception as e:
-            print(f"Scheduled sync failed: {e}")
+            print(f"[Daily Sync] Failed: {e}")
+
 
 def trigger_manual_sync():
     """Manually trigger a sync (for admin use)"""
-    with current_app.app_context():
+    global _app_ref
+    if _app_ref is None:
+        return 0
+    with _app_ref.app_context():
         try:
             from app.services.openligadb import OpenLigaDBClient
             client = OpenLigaDBClient()

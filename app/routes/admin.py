@@ -372,6 +372,7 @@ def edit_user(user_id):
         target_user.name = name
         target_user.email = email
         target_user.is_admin = is_admin_user
+        target_user.email_notifications = 'email_notifications' in request.form
         db.session.commit()
         
         flash(f'Benutzer {name} aktualisiert', 'success')
@@ -604,6 +605,16 @@ def email_settings():
             settings.send_deadline_24h = 'send_deadline_24h' in request.form
             settings.send_deadline_2h = 'send_deadline_2h' in request.form
             settings.send_match_result = 'send_match_result' in request.form
+            # SMTP fields
+            settings.mail_server = request.form.get('mail_server', '').strip() or None
+            port_str = request.form.get('mail_port', '').strip()
+            settings.mail_port = int(port_str) if port_str.isdigit() else None
+            settings.mail_use_tls = 'mail_use_tls' in request.form
+            settings.mail_username = request.form.get('mail_username', '').strip() or None
+            pwd = request.form.get('mail_password', '').strip()
+            if pwd:
+                settings.mail_password = pwd
+            settings.mail_sender = request.form.get('mail_sender', '').strip() or None
             db.session.commit()
             flash('Email-Einstellungen gespeichert', 'success')
 
@@ -613,21 +624,20 @@ def email_settings():
                 flash('Bitte Email-Adresse angeben', 'error')
             else:
                 from app.services.email_service import send_test_email
-                ok = send_test_email(to_email, user.name)
+                ok, err = send_test_email(to_email, user.name)
                 if ok:
-                    flash(f'Test-Email an {to_email} gesendet ✓', 'success')
-                elif not settings.enabled:
-                    flash('Email ist global deaktiviert. Aktiviere Email oben.', 'warning')
+                    flash(f'✅ Test-Email an {to_email} gesendet', 'success')
                 else:
-                    flash('Email-Versand fehlgeschlagen. SMTP-Konfiguration prüfen.', 'error')
+                    flash(f'❌ Fehler: {err}', 'error')
 
         return redirect(url_for('admin.email_settings'))
 
     mail_config = {
-        'server': current_app.config.get('MAIL_SERVER', ''),
-        'port': current_app.config.get('MAIL_PORT', 587),
-        'username': current_app.config.get('MAIL_USERNAME', ''),
-        'sender': current_app.config.get('MAIL_DEFAULT_SENDER', ''),
+        'server': settings.mail_server or current_app.config.get('MAIL_SERVER', ''),
+        'port': settings.mail_port or current_app.config.get('MAIL_PORT', 587),
+        'username': settings.mail_username or current_app.config.get('MAIL_USERNAME', ''),
+        'sender': settings.mail_sender or current_app.config.get('MAIL_DEFAULT_SENDER', ''),
+        'use_tls': settings.mail_use_tls,
     }
 
     users_with_email = User.query.filter(

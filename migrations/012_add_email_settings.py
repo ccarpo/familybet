@@ -16,6 +16,12 @@ def migrate(conn):
         CREATE TABLE IF NOT EXISTS email_settings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             enabled BOOLEAN DEFAULT 0,
+            mail_server VARCHAR(200),
+            mail_port INTEGER,
+            mail_use_tls BOOLEAN DEFAULT 1,
+            mail_username VARCHAR(200),
+            mail_password VARCHAR(200),
+            mail_sender VARCHAR(200),
             send_magic_link BOOLEAN DEFAULT 1,
             send_welcome BOOLEAN DEFAULT 1,
             send_deadline_24h BOOLEAN DEFAULT 1,

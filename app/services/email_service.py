@@ -17,14 +17,42 @@ def _mail_enabled():
     return s.enabled if s else False
 
 
-def send_email(to, subject, html_body, text_body=None):
-    """Send a single email. Returns True on success, False otherwise."""
-    if not _mail_enabled():
+def _apply_smtp_from_db():
+    """Override Flask-Mail config with DB values if set."""
+    s = _get_settings()
+    if not s:
+        return
+    if s.mail_server:
+        current_app.extensions['mail'].server = s.mail_server
+        current_app.config['MAIL_SERVER'] = s.mail_server
+    if s.mail_port:
+        current_app.extensions['mail'].port = s.mail_port
+        current_app.config['MAIL_PORT'] = s.mail_port
+    if s.mail_username:
+        current_app.extensions['mail'].username = s.mail_username
+        current_app.config['MAIL_USERNAME'] = s.mail_username
+    if s.mail_password:
+        current_app.extensions['mail'].password = s.mail_password
+        current_app.config['MAIL_PASSWORD'] = s.mail_password
+    if s.mail_sender:
+        current_app.extensions['mail'].default_sender = s.mail_sender
+        current_app.config['MAIL_DEFAULT_SENDER'] = s.mail_sender
+    current_app.extensions['mail'].use_tls = s.mail_use_tls
+    current_app.config['MAIL_USE_TLS'] = s.mail_use_tls
+
+
+def send_email(to, subject, html_body, text_body=None, force=False):
+    """Send a single email. Returns True on success, False otherwise.
+    
+    force=True bypasses the enabled check (used for test emails).
+    """
+    if not force and not _mail_enabled():
         current_app.logger.info(f"[Email disabled] Would send '{subject}' to {to}")
         return False
     if not to:
         return False
     try:
+        _apply_smtp_from_db()
         msg = Message(subject=subject, recipients=[to] if isinstance(to, str) else to)
         msg.html = html_body
         if text_body:
@@ -33,7 +61,7 @@ def send_email(to, subject, html_body, text_body=None):
         return True
     except Exception as e:
         current_app.logger.error(f"Email send failed to {to}: {e}")
-        return False
+        raise
 
 
 # ---------------------------------------------------------------------------
@@ -207,15 +235,21 @@ def send_welcome_email(user):
 
 
 def send_test_email(to_email, user_name="Test"):
-    """Send a test email to verify SMTP config."""
+    """Send a test email to verify SMTP config. Always attempts regardless of enabled flag.
+    
+    Returns (True, None) on success or (False, error_message) on failure.
+    """
     content = f"""
-    <h3>✅ Email-Konfiguration erfolgreich!</h3>
+    <h3>✅ SMTP-Test erfolgreich!</h3>
     <p>Hallo <strong>{user_name}</strong>,</p>
-    <p>diese Test-Email bestätigt dass FamilyBet Email-Benachrichtigungen 
-    korrekt konfiguriert und versenden kann.</p>
+    <p>diese Test-Email bestätigt dass FamilyBet Emails versenden kann.</p>
     <p style="color:#6b7280;font-size:0.9em">Gesendet von FamilyBet Admin</p>
     """
-    return send_email(to_email, "✅ FamilyBet – Email-Test", _render(content))
+    try:
+        send_email(to_email, "✅ FamilyBet – SMTP-Test", _render(content), force=True)
+        return True, None
+    except Exception as e:
+        return False, str(e)
 
 
 # ---------------------------------------------------------------------------

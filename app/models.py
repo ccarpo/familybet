@@ -437,13 +437,21 @@ class BettingPhaseLock(db.Model):
 
 
 class EmailSettings(db.Model):
-    """Singleton table: admin-controlled toggles for each email type."""
+    """Singleton table: admin-controlled SMTP config and per-type toggles."""
     __tablename__ = 'email_settings'
 
     id = db.Column(db.Integer, primary_key=True)
 
     # Global kill-switch (overrides all below)
     enabled = db.Column(db.Boolean, default=False)
+
+    # SMTP configuration (overrides .env if set)
+    mail_server = db.Column(db.String(200), nullable=True)
+    mail_port = db.Column(db.Integer, nullable=True)
+    mail_use_tls = db.Column(db.Boolean, default=True)
+    mail_username = db.Column(db.String(200), nullable=True)
+    mail_password = db.Column(db.String(200), nullable=True)
+    mail_sender = db.Column(db.String(200), nullable=True)
 
     # Per-type toggles
     send_magic_link = db.Column(db.Boolean, default=True)

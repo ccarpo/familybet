@@ -25,6 +25,12 @@
                 <input type="checkbox" name="is_admin" id="is_admin" class="mr-2" {% if target_user.is_admin %}checked{% endif %}>
                 <label for="is_admin" class="text-sm font-medium">Admin-Rechte</label>
             </div>
+
+            <div class="flex items-center">
+                <input type="checkbox" name="email_notifications" id="email_notifications" class="mr-2"
+                       {% if target_user.email_notifications %}checked{% endif %}>
+                <label for="email_notifications" class="text-sm font-medium">📧 Email-Benachrichtigungen</label>
+            </div>
             
             <div class="pt-2 border-t">
                 <div class="flex items-center justify-between text-sm">

@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Scheduler - Admin{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold">⏱️ Scheduler</h1>
+        <a href="{{ url_for('admin.index') }}" class="text-blue-600 hover:underline">← Admin</a>
+    </div>
+
+    <!-- Status -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center gap-3 mb-4">
+            <span class="text-lg font-bold">Status</span>
+            {% if scheduler_running %}
+            <span class="bg-green-100 text-green-800 text-sm px-3 py-1 rounded-full font-medium">● läuft</span>
+            {% else %}
+            <span class="bg-red-100 text-red-800 text-sm px-3 py-1 rounded-full font-medium">● gestoppt</span>
+            {% endif %}
+        </div>
+
+        {% if jobs %}
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="text-left text-gray-500 border-b">
+                    <th class="pb-2">Job</th>
+                    <th class="pb-2">Nächste Ausführung</th>
+                    <th class="pb-2">In</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for job in jobs %}
+                <tr class="border-b last:border-0">
+                    <td class="py-2 font-medium">{{ job.name }}</td>
+                    <td class="py-2 text-gray-600">
+                        {% if job.next_run %}
+                            {{ job.next_run.strftime('%d.%m.%Y %H:%M') }} UTC
+                        {% else %}
+                            –
+                        {% endif %}
+                    </td>
+                    <td class="py-2">
+                        {% if job.minutes_until is not none %}
+                            {% if job.minutes_until < 5 %}
+                            <span class="text-orange-600 font-medium">{{ job.minutes_until }} Min</span>
+                            {% elif job.minutes_until < 60 %}
+                            <span class="text-blue-600">{{ job.minutes_until }} Min</span>
+                            {% else %}
+                            <span class="text-gray-500">{{ (job.minutes_until / 60)|round(1) }} Std</span>
+                            {% endif %}
+                        {% else %}
+                            –
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-gray-500 text-sm">Keine Jobs gefunden.</p>
+        {% endif %}
+    </div>
+
+    <!-- Manuell auslösen -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-lg font-bold mb-4">Manuell auslösen</h2>
+        <div class="flex flex-wrap gap-3">
+            <form method="POST">
+                <input type="hidden" name="action" value="sync">
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm">
+                    🔄 Match-Sync jetzt
+                </button>
+            </form>
+            <form method="POST">
+                <input type="hidden" name="action" value="reminders">
+                <button type="submit" class="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 text-sm">
+                    ⏰ Deadline-Reminder jetzt
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Email-Log Statistik -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-bold">Email-Log</h2>
+            <form method="POST">
+                <input type="hidden" name="action" value="clear_log">
+                <button type="submit"
+                        onclick="return confirm('Email-Log leeren? Alle gesendeten Emails können erneut gesendet werden.')"
+                        class="text-sm text-red-600 hover:underline">
+                    Log leeren
+                </button>
+            </form>
+        </div>
+
+        {% if log_stats %}
+        <table class="w-full text-sm mb-6">
+            <thead>
+                <tr class="text-left text-gray-500 border-b">
+                    <th class="pb-2">Typ</th>
+                    <th class="pb-2">Gesendet</th>
+                    <th class="pb-2">Zuletzt</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in log_stats %}
+                <tr class="border-b last:border-0">
+                    <td class="py-2 font-mono text-xs">{{ row[0] }}</td>
+                    <td class="py-2">{{ row[1] }}×</td>
+                    <td class="py-2 text-gray-500">{{ row[2] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h3 class="font-medium text-sm text-gray-700 mb-2">Letzte 20 Einträge</h3>
+        <div class="space-y-1">
+            {% for entry in recent_log %}
+            <div class="flex items-center gap-3 text-xs text-gray-600 py-1 border-b last:border-0">
+                <span class="font-mono bg-gray-100 px-2 py-0.5 rounded">{{ entry.email_type }}</span>
+                <span>User {{ entry.user_id or '–' }}</span>
+                {% if entry.ref_id %}<span class="text-gray-400">ref:{{ entry.ref_id }}</span>{% endif %}
+                <span class="ml-auto text-gray-400">{{ entry.sent_at.strftime('%d.%m %H:%M') }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-500 text-sm">Noch keine Emails gesendet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

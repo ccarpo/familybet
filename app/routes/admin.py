@@ -652,3 +652,61 @@ def email_settings():
                            settings=settings,
                            mail_config=mail_config,
                            users_with_email=users_with_email)
+
+
+@admin_bp.route('/admin/scheduler', methods=['GET', 'POST'])
+def scheduler_status():
+    """Show scheduler job status and allow manual triggers."""
+    from app.services.scheduler import scheduler
+    from app.models import EmailLog
+    from datetime import datetime, timezone
+
+    user = get_current_user()
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'sync':
+            from app.services.scheduler import sync_matches_job
+            sync_matches_job()
+            flash('Sync manuell ausgeführt', 'success')
+        elif action == 'reminders':
+            from app.services.scheduler import deadline_reminder_job
+            deadline_reminder_job()
+            flash('Deadline-Reminder manuell ausgeführt', 'success')
+        elif action == 'clear_log':
+            EmailLog.query.delete()
+            db.session.commit()
+            flash('Email-Log geleert', 'success')
+        return redirect(url_for('admin.scheduler_status'))
+
+    jobs = []
+    if scheduler and scheduler.running:
+        for job in scheduler.get_jobs():
+            next_run = job.next_run_time
+            if next_run:
+                now = datetime.now(timezone.utc)
+                delta = next_run.astimezone(timezone.utc) - now
+                minutes_until = int(delta.total_seconds() / 60)
+            else:
+                minutes_until = None
+            jobs.append({
+                'id': job.id,
+                'name': job.name,
+                'next_run': next_run,
+                'minutes_until': minutes_until,
+            })
+    else:
+        jobs = []
+
+    log_stats = db.session.execute(
+        db.text("SELECT email_type, COUNT(*) as cnt, MAX(sent_at) as last_sent FROM email_log GROUP BY email_type ORDER BY last_sent DESC")
+    ).fetchall()
+
+    recent_log = EmailLog.query.order_by(EmailLog.sent_at.desc()).limit(20).all()
+
+    return render_template('admin/scheduler.html',
+                           user=user,
+                           jobs=jobs,
+                           scheduler_running=scheduler.running if scheduler else False,
+                           log_stats=log_stats,
+                           recent_log=recent_log)

@@ -13,4 +13,6 @@ depends_on = None
 
 def migrate(conn):
     """Add selected_tournament_id column to users table."""
-    conn.execute('ALTER TABLE users ADD COLUMN selected_tournament_id INTEGER REFERENCES tournaments(id)')
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(users)")}
+    if 'selected_tournament_id' not in cols:
+        conn.execute('ALTER TABLE users ADD COLUMN selected_tournament_id INTEGER REFERENCES tournaments(id)')

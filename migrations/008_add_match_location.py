@@ -13,4 +13,6 @@ depends_on = None
 
 def migrate(conn):
     """Add location column to matches table using raw SQL for SQLite compatibility."""
-    conn.execute('ALTER TABLE matches ADD COLUMN location VARCHAR(200)')
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(matches)")}
+    if 'location' not in cols:
+        conn.execute('ALTER TABLE matches ADD COLUMN location VARCHAR(200)')

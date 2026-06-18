@@ -32,8 +32,18 @@ class User(db.Model):
             return False
         return datetime.utcnow() < self.token_expires_at
     
-    def get_total_points(self):
-        match_points = db.session.query(db.func.sum(Bet.points_earned)).filter(Bet.user_id == self.id).scalar() or 0
+    def get_total_points(self, tournament_id=None):
+        if tournament_id:
+            from app.models import Match
+            league_shortcuts = [t.get_league_shortcut() or t.short_name
+                                for t in Tournament.query.filter_by(id=tournament_id).all()]
+            match_ids = [m.id for m in Match.query.filter(Match.league_shortcut.in_(league_shortcuts)).all()]
+            match_points = db.session.query(db.func.sum(Bet.points_earned)).filter(
+                Bet.user_id == self.id,
+                Bet.match_id.in_(match_ids)
+            ).scalar() or 0
+        else:
+            match_points = db.session.query(db.func.sum(Bet.points_earned)).filter(Bet.user_id == self.id).scalar() or 0
         tournament_points = 0
         if self.tournament_bet:
             tournament_points = self.tournament_bet.points_earned or 0

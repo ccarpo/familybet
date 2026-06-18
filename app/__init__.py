@@ -46,19 +46,29 @@ def create_app():
             from flask import session
             from app.models import Tournament, User
             
-            context = {
-                'active_tournaments': Tournament.query.filter_by(is_active=True).order_by(Tournament.name).all()
-            }
+            try:
+                active_tournaments = Tournament.query.filter_by(is_active=True).order_by(Tournament.name).all()
+            except Exception:
+                active_tournaments = []
+            
+            context = {'active_tournaments': active_tournaments, 'user_selected_tournament': None}
             
             # Get user's selected tournament
             if session.get('user_id'):
-                user = User.query.get(session['user_id'])
-                if user and user.selected_tournament_id:
-                    context['user_selected_tournament'] = user.selected_tournament
-                else:
-                    # Default to first active tournament
-                    active = Tournament.query.filter_by(is_active=True).first()
-                    context['user_selected_tournament'] = active
+                try:
+                    user = User.query.get(session['user_id'])
+                    if user and user.selected_tournament_id:
+                        selected = Tournament.query.get(user.selected_tournament_id)
+                        # Ensure selected tournament is still active
+                        if selected and selected.is_active:
+                            context['user_selected_tournament'] = selected
+                        else:
+                            # Fall back to first active
+                            context['user_selected_tournament'] = active_tournaments[0] if active_tournaments else None
+                    else:
+                        context['user_selected_tournament'] = active_tournaments[0] if active_tournaments else None
+                except Exception:
+                    pass
             
             return context
         

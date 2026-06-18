@@ -33,7 +33,7 @@
                         </button>
                         <div class="absolute left-0 mt-0 w-56 bg-white rounded-md shadow-lg py-1 hidden group-hover:block z-50">
                             {% for tournament in active_tournaments %}
-                            <form method="POST" action="{{ url_for('admin_tournaments.select_tournament', tournament_id=tournament.id) }}" class="block">
+                            <form method="POST" action="{{ url_for('main.select_tournament', tournament_id=tournament.id) }}" class="block">
                                 <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {% if user_selected_tournament and user_selected_tournament.id == tournament.id %}bg-blue-50 font-medium{% endif %}">
                                     {% if user_selected_tournament and user_selected_tournament.id == tournament.id %}✓ {% endif %}
                                     {{ tournament.name }}

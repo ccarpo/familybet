@@ -138,24 +138,6 @@ def activate_tournament(tournament_id):
     return redirect(url_for('admin_tournaments.tournaments'))
 
 
-@admin_tournaments_bp.route('/user/select-tournament/<int:tournament_id>', methods=['POST'])
-def select_tournament(tournament_id):
-    """User selects which tournament to view."""
-    from flask import session
-    
-    user = get_current_user()
-    if not user:
-        flash('Bitte einloggen', 'error')
-        return redirect(url_for('auth.login'))
-    
-    tournament = Tournament.query.get_or_404(tournament_id)
-    user.selected_tournament_id = tournament_id
-    db.session.commit()
-    
-    flash(f'Turnier gewechselt: {tournament.name}', 'success')
-    return redirect(request.referrer or url_for('main.dashboard'))
-
-
 @admin_tournaments_bp.route('/admin/tournaments/<int:tournament_id>/deactivate', methods=['POST'])
 def deactivate_tournament(tournament_id):
     """Deactivate (archive) a tournament."""

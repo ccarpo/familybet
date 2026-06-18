@@ -523,6 +523,21 @@ def _show_ko_round(round_keyword, display_name):
                           phase_locks=phase_locks)
 
 
+@main_bp.route('/select-tournament/<int:tournament_id>', methods=['POST'])
+def select_tournament(tournament_id):
+    """User selects which tournament to view."""
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('auth.login'))
+    
+    from app.models import Tournament
+    tournament = Tournament.query.get_or_404(tournament_id)
+    user.selected_tournament_id = tournament_id
+    db.session.commit()
+    
+    return redirect(request.referrer or url_for('main.dashboard'))
+
+
 def _get_qualified_teams():
     """Calculate which teams have qualified from groups."""
     group_matches = Match.query.filter_by(round_type='group').all()

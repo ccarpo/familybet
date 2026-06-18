@@ -20,7 +20,7 @@ from flask import current_app
 
 
 # Target schema version - increment when adding new migrations
-TARGET_SCHEMA_VERSION = 14
+TARGET_SCHEMA_VERSION = 15
 
 
 def _get_db_path():

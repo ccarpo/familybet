@@ -486,6 +486,32 @@ class EmailSettings(db.Model):
         return f'<EmailSettings enabled={self.enabled}>'
 
 
+class EmailLog(db.Model):
+    """Tracks sent emails to prevent duplicate sends."""
+    __tablename__ = 'email_log'
+
+    id = db.Column(db.Integer, primary_key=True)
+    email_type = db.Column(db.String(50), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    ref_id = db.Column(db.String(100), nullable=True)
+    sent_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @classmethod
+    def already_sent(cls, email_type, user_id=None, ref_id=None):
+        q = cls.query.filter_by(email_type=email_type)
+        if user_id is not None:
+            q = q.filter_by(user_id=user_id)
+        if ref_id is not None:
+            q = q.filter_by(ref_id=ref_id)
+        return q.first() is not None
+
+    @classmethod
+    def record(cls, email_type, user_id=None, ref_id=None):
+        entry = cls(email_type=email_type, user_id=user_id, ref_id=ref_id)
+        db.session.add(entry)
+        db.session.commit()
+
+
 class Tournament(db.Model):
     """Represents a tournament instance (e.g., WM2026, Euro2024)."""
     __tablename__ = 'tournaments'

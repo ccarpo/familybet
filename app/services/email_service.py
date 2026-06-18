@@ -261,44 +261,55 @@ def send_test_email(to_email, user_name="Test"):
 def send_deadline_reminders(hours_before=24):
     """Send reminders for rounds whose deadline is in ~hours_before hours."""
     from datetime import datetime, timedelta
-    from app.models import User, TournamentRound, Tournament
-    
+    from app.models import User, TournamentRound, Tournament, EmailLog
+
     now = datetime.utcnow()
     window_start = now + timedelta(hours=hours_before - 1)
     window_end = now + timedelta(hours=hours_before + 1)
-    
+
     rounds = TournamentRound.query.filter(
         TournamentRound.deadline >= window_start,
         TournamentRound.deadline <= window_end
     ).all()
-    
+
     if not rounds:
         return 0
-    
+
+    email_type = f'deadline_{hours_before}h'
     users = User.query.filter_by(email_notifications=True).filter(User.email.isnot(None)).all()
     sent = 0
     for t_round in rounds:
+        ref_id = str(t_round.id)
         for user in users:
+            if EmailLog.already_sent(email_type, user_id=user.id, ref_id=ref_id):
+                continue
             ok = notify_deadline_reminder(user, t_round.name, t_round.deadline, hours_before)
             if ok:
+                EmailLog.record(email_type, user_id=user.id, ref_id=ref_id)
                 sent += 1
-    
+
     current_app.logger.info(f"[Email] Sent {sent} deadline reminders ({hours_before}h window)")
     return sent
 
 
 def send_match_result_notifications(match):
     """Send result notifications to all users who bet on a match."""
-    from app.models import User, Bet
-    
+    from app.models import User, Bet, EmailLog
+
+    email_type = 'match_result'
+    ref_id = str(match.id)
+
     bets = Bet.query.filter_by(match_id=match.id).all()
     bet_by_user = {b.user_id: b for b in bets}
-    
+
     users = User.query.filter_by(email_notifications=True).filter(User.email.isnot(None)).all()
     sent = 0
     for user in users:
+        if EmailLog.already_sent(email_type, user_id=user.id, ref_id=ref_id):
+            continue
         bet = bet_by_user.get(user.id)
         ok = notify_match_result(user, match, bet)
         if ok:
+            EmailLog.record(email_type, user_id=user.id, ref_id=ref_id)
             sent += 1
     return sent

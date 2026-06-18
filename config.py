@@ -23,3 +23,13 @@ class Config:
     
     # App settings
     BET_LOCK_MINUTES_BEFORE_MATCH = 0
+    
+    # Email / SMTP settings
+    MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+    MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
+    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'true').lower() == 'true'
+    MAIL_USE_SSL = os.environ.get('MAIL_USE_SSL', 'false').lower() == 'true'
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')        # e.g. familybet@gmail.com
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')        # App password
+    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', 'FamilyBet <noreply@familybet.app>')
+    MAIL_ENABLED = os.environ.get('MAIL_ENABLED', 'false').lower() == 'true'  # Must be explicitly enabled

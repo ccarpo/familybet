@@ -36,9 +36,18 @@ def init_scheduler(app):
         replace_existing=True
     )
     
+    # Deadline reminders: check every hour for upcoming deadlines
+    scheduler.add_job(
+        func=deadline_reminder_job,
+        trigger=IntervalTrigger(hours=1),
+        id='deadline_reminders',
+        name='Deadline reminder emails',
+        replace_existing=True
+    )
+    
     scheduler.start()
     atexit.register(lambda: scheduler.shutdown())
-    print("Scheduler initialized (daily + 15-min live sync)")
+    print("Scheduler initialized (daily + 15-min live sync + hourly deadline reminders)")
 
 
 def _has_live_matches():
@@ -83,11 +92,42 @@ def smart_sync_job():
                     except Exception as e:
                         print(f"[Live Sync] Failed for {tournament.name}: {e}")
             
+            # Find newly finished matches (finished in last 20 min)
+            from app.models import Match
+            recently_finished = Match.query.filter(
+                Match.is_finished == True,
+                Match.last_updated >= datetime.utcnow() - timedelta(minutes=20)
+            ).all()
+            
             # Recalculate points for newly finished matches
             ScoringService.recalculate_all_match_points()
+            
+            # Send result notifications
+            if recently_finished:
+                from app.services.email_service import send_match_result_notifications
+                for match in recently_finished:
+                    send_match_result_notifications(match)
+                print(f"[Live Sync] Notified for {len(recently_finished)} finished match(es)")
+            
             print("[Live Sync] Done")
         except Exception as e:
             print(f"[Live Sync] Error: {e}")
+
+
+def deadline_reminder_job():
+    """Hourly job: send reminders 24h and 2h before round deadlines."""
+    global _app_ref
+    if _app_ref is None:
+        return
+    with _app_ref.app_context():
+        try:
+            from app.services.email_service import send_deadline_reminders
+            sent_24 = send_deadline_reminders(hours_before=24)
+            sent_2 = send_deadline_reminders(hours_before=2)
+            if sent_24 + sent_2 > 0:
+                print(f"[Reminders] {sent_24} (24h) + {sent_2} (2h) emails sent")
+        except Exception as e:
+            print(f"[Reminders] Error: {e}")
 
 
 def sync_matches_job():

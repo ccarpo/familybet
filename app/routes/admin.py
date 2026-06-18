@@ -125,6 +125,11 @@ def add_user():
     db.session.add(new_user)
     db.session.commit()
     
+    # Send welcome email if enabled
+    if email:
+        from app.services.email_service import send_welcome_email
+        send_welcome_email(new_user)
+    
     flash(f'Benutzer {name} erstellt', 'success')
     return redirect(url_for('admin.index'))
 
@@ -579,3 +584,59 @@ def phase_locks():
     return render_template('admin/phase_locks.html',
                           phase_locks=phase_locks,
                           user=user)
+
+
+@admin_bp.route('/admin/email', methods=['GET', 'POST'])
+def email_settings():
+    """Email settings and test email."""
+    from flask import current_app
+    from app.models import EmailSettings
+    user = get_current_user()
+    settings = EmailSettings.get()
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+
+        if action == 'save':
+            settings.enabled = 'enabled' in request.form
+            settings.send_magic_link = 'send_magic_link' in request.form
+            settings.send_welcome = 'send_welcome' in request.form
+            settings.send_deadline_24h = 'send_deadline_24h' in request.form
+            settings.send_deadline_2h = 'send_deadline_2h' in request.form
+            settings.send_match_result = 'send_match_result' in request.form
+            db.session.commit()
+            flash('Email-Einstellungen gespeichert', 'success')
+
+        elif action == 'test':
+            to_email = request.form.get('to_email', '').strip()
+            if not to_email:
+                flash('Bitte Email-Adresse angeben', 'error')
+            else:
+                from app.services.email_service import send_test_email
+                ok = send_test_email(to_email, user.name)
+                if ok:
+                    flash(f'Test-Email an {to_email} gesendet ✓', 'success')
+                elif not settings.enabled:
+                    flash('Email ist global deaktiviert. Aktiviere Email oben.', 'warning')
+                else:
+                    flash('Email-Versand fehlgeschlagen. SMTP-Konfiguration prüfen.', 'error')
+
+        return redirect(url_for('admin.email_settings'))
+
+    mail_config = {
+        'server': current_app.config.get('MAIL_SERVER', ''),
+        'port': current_app.config.get('MAIL_PORT', 587),
+        'username': current_app.config.get('MAIL_USERNAME', ''),
+        'sender': current_app.config.get('MAIL_DEFAULT_SENDER', ''),
+    }
+
+    users_with_email = User.query.filter(
+        User.email.isnot(None),
+        User.email_notifications == True
+    ).count()
+
+    return render_template('admin/email_settings.html',
+                           user=user,
+                           settings=settings,
+                           mail_config=mail_config,
+                           users_with_email=users_with_email)

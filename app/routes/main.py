@@ -348,6 +348,7 @@ def profile():
         
         user.name = name
         user.email = email
+        user.email_notifications = 'email_notifications' in request.form
         db.session.commit()
         
         # Update session

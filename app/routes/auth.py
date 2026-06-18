@@ -24,11 +24,23 @@ def login():
         token = user.generate_magic_token()
         db.session.commit()
         
-        # Display the magic link directly (since we don't have email configured)
         magic_link = url_for('auth.magic_login', token=token, _external=True)
         
-        flash(f'Login-Link erstellt! Klicke hier: <a href="{magic_link}">Einloggen</a>', 'success')
-        return render_template('login.html', magic_link=magic_link)
+        from app.services.email_service import send_magic_link
+        from app.models import EmailSettings
+        settings = EmailSettings.get()
+        if settings.is_enabled('magic_link'):
+            ok = send_magic_link(user, magic_link)
+            if ok:
+                flash('Login-Link wurde an deine Email gesendet. Bitte prüfe dein Postfach.', 'success')
+                return render_template('login.html')
+            else:
+                flash('Email-Versand fehlgeschlagen. Bitte Admin kontaktieren.', 'error')
+                return render_template('login.html')
+        else:
+            # Dev fallback or magic_link type disabled: show link on page
+            flash(f'Login-Link erstellt! Klicke hier: <a href="{magic_link}">Einloggen</a>', 'success')
+            return render_template('login.html', magic_link=magic_link)
     
     return render_template('login.html')
 

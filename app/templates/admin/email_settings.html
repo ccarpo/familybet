@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Email-Einstellungen - Admin{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold">📧 Email-Einstellungen</h1>
+        <a href="{{ url_for('admin.index') }}" class="text-blue-600 hover:underline">← Admin</a>
+    </div>
+
+    <!-- SMTP Info -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-lg font-bold mb-4">SMTP Konfiguration <span class="text-sm font-normal text-gray-500">(.env)</span></h2>
+        <div class="grid grid-cols-2 gap-3 text-sm">
+            <div class="font-medium text-gray-600">Server</div>
+            <div>{{ mail_config.server }}:{{ mail_config.port }}</div>
+            <div class="font-medium text-gray-600">Absender</div>
+            <div>{{ mail_config.sender or '–' }}</div>
+            <div class="font-medium text-gray-600">Benutzername</div>
+            <div>{{ mail_config.username or '–' }}</div>
+            <div class="font-medium text-gray-600">Empfänger (opt-in)</div>
+            <div><strong>{{ users_with_email }}</strong> Nutzer</div>
+        </div>
+        <div class="mt-4 bg-gray-50 border rounded p-3 text-xs">
+            <pre class="overflow-x-auto">MAIL_SERVER=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USE_TLS=true
+MAIL_USERNAME=konto@gmail.com
+MAIL_PASSWORD=app-passwort
+MAIL_DEFAULT_SENDER=FamilyBet &lt;konto@gmail.com&gt;</pre>
+            <a href="https://myaccount.google.com/apppasswords" class="text-blue-600 underline" target="_blank">Gmail App-Passwort erstellen →</a>
+        </div>
+    </div>
+
+    <!-- Toggles -->
+    <form method="POST">
+        <input type="hidden" name="action" value="save">
+        <div class="bg-white rounded-lg shadow-md p-6 space-y-5">
+            <h2 class="text-lg font-bold">Email-Typen aktivieren</h2>
+
+            <!-- Global -->
+            <div class="flex items-center justify-between py-3 border-b">
+                <div>
+                    <div class="font-semibold text-lg">📧 Email global aktivieren</div>
+                    <div class="text-sm text-gray-500">Master-Schalter – deaktiviert überschreibt alle anderen</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" name="enabled" {% if settings.enabled %}checked{% endif %} class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-blue-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                </label>
+            </div>
+
+            {% set email_types = [
+                ('send_magic_link',  '🔐', 'Login-Link',           'Wird bei jedem Login-Versuch gesendet. Deaktivieren zeigt Link auf der Seite (Dev-Modus).'),
+                ('send_welcome',     '👋', 'Willkommens-Email',     'Wenn Admin einen neuen User anlegt.'),
+                ('send_deadline_24h','⏰', 'Deadline-Erinnerung 24h','Wenn Runden-Deadline in ~24 Stunden abläuft.'),
+                ('send_deadline_2h', '⏰', 'Deadline-Erinnerung 2h', 'Letzte Erinnerung kurz vor Ablauf.'),
+                ('send_match_result','🏁', 'Spielergebnis',          'Nach Spielende: Ergebnis + Punkte für eigenen Tipp.')
+            ] %}
+
+            {% for field, icon, label, desc in email_types %}
+            <div class="flex items-center justify-between py-3 border-b last:border-0">
+                <div>
+                    <div class="font-medium">{{ icon }} {{ label }}</div>
+                    <div class="text-sm text-gray-500">{{ desc }}</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" name="{{ field }}" {% if settings|attr(field) %}checked{% endif %} class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-blue-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                </label>
+            </div>
+            {% endfor %}
+
+            <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+                Einstellungen speichern
+            </button>
+        </div>
+    </form>
+
+    <!-- Test Email -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-lg font-bold mb-4">Test-Email senden</h2>
+        <form method="POST" class="flex gap-3">
+            <input type="hidden" name="action" value="test">
+            <input type="email" name="to_email" placeholder="test@example.com"
+                   value="{{ user.email or '' }}"
+                   class="flex-1 border rounded px-3 py-2 text-sm max-w-xs">
+            <button type="submit" class="bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700 text-sm">
+                Test senden
+            </button>
+        </form>
+        {% if not settings.enabled %}
+        <p class="text-xs text-amber-600 mt-2">⚠️ Email ist global deaktiviert – Test wird nur im Log angezeigt</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

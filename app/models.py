@@ -15,6 +15,7 @@ class User(db.Model):
     magic_token = db.Column(db.String(64), unique=True, nullable=True)
     token_expires_at = db.Column(db.DateTime, nullable=True)
     selected_tournament_id = db.Column(db.Integer, db.ForeignKey('tournaments.id'), nullable=True)
+    email_notifications = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
@@ -433,6 +434,47 @@ class BettingPhaseLock(db.Model):
 
     def __repr__(self):
         return f'<BettingPhaseLock {self.phase_name}: {"locked" if self.is_locked else "open"}>'
+
+
+class EmailSettings(db.Model):
+    """Singleton table: admin-controlled toggles for each email type."""
+    __tablename__ = 'email_settings'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Global kill-switch (overrides all below)
+    enabled = db.Column(db.Boolean, default=False)
+
+    # Per-type toggles
+    send_magic_link = db.Column(db.Boolean, default=True)
+    send_welcome = db.Column(db.Boolean, default=True)
+    send_deadline_24h = db.Column(db.Boolean, default=True)
+    send_deadline_2h = db.Column(db.Boolean, default=True)
+    send_match_result = db.Column(db.Boolean, default=True)
+
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    @classmethod
+    def get(cls):
+        """Return the singleton row, creating it if necessary."""
+        settings = cls.query.first()
+        if not settings:
+            settings = cls()
+            db.session.add(settings)
+            db.session.commit()
+        return settings
+
+    def is_enabled(self, email_type):
+        """Check if a specific email type is enabled.
+        
+        email_type: 'magic_link' | 'welcome' | 'deadline_24h' | 'deadline_2h' | 'match_result'
+        """
+        if not self.enabled:
+            return False
+        return bool(getattr(self, f'send_{email_type}', False))
+
+    def __repr__(self):
+        return f'<EmailSettings enabled={self.enabled}>'
 
 
 class Tournament(db.Model):

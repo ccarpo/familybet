@@ -14,64 +14,117 @@
 </head>
 <body class="bg-gray-100 min-h-screen">
     <!-- Navigation -->
-    <nav class="bg-blue-600 text-white shadow-lg">
+    <nav class="bg-blue-600 text-white shadow-lg w-full relative z-40">
         <div class="max-w-6xl mx-auto px-4">
             <div class="flex items-center justify-between h-14">
-                <a href="{{ url_for('main.dashboard') }}" class="font-bold text-xl">🏆 FamilyBet</a>
-                
+                <a href="{{ url_for('main.dashboard') }}" class="font-bold text-xl shrink-0">🏆 FamilyBet</a>
+
                 {% if session.user_id %}
-                <div class="flex items-center space-x-4">
-                    <!-- Tournament Dropdown -->
+                <!-- Desktop nav -->
+                <div class="hidden md:flex items-center space-x-4">
                     {% if active_tournaments %}
                     <div class="relative group">
-                        <button class="hover:text-blue-200 text-sm flex items-center gap-1 bg-blue-700 px-3 py-1 rounded">
-                            {% if user_selected_tournament %}
-                                🏆 {{ user_selected_tournament.name }} ▼
-                            {% else %}
-                                🏆 Turnier wählen ▼
-                            {% endif %}
+                        <button class="hover:text-blue-200 text-sm flex items-center gap-1 bg-blue-700 px-3 py-1 rounded whitespace-nowrap">
+                            {% if user_selected_tournament %}{{ user_selected_tournament.short_name|upper }}{% else %}Turnier{% endif %} ▼
                         </button>
-                        <div class="absolute left-0 mt-0 w-56 bg-white rounded-md shadow-lg py-1 hidden group-hover:block z-50">
+                        <div class="absolute left-0 top-full mt-1 w-56 bg-white rounded-md shadow-lg py-1 hidden group-hover:block z-50">
                             {% for tournament in active_tournaments %}
                             <form method="POST" action="{{ url_for('main.select_tournament', tournament_id=tournament.id) }}" class="block">
                                 <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {% if user_selected_tournament and user_selected_tournament.id == tournament.id %}bg-blue-50 font-medium{% endif %}">
-                                    {% if user_selected_tournament and user_selected_tournament.id == tournament.id %}✓ {% endif %}
-                                    {{ tournament.name }}
+                                    {% if user_selected_tournament and user_selected_tournament.id == tournament.id %}✓ {% endif %}{{ tournament.name }}
                                 </button>
                             </form>
                             {% endfor %}
                         </div>
                     </div>
                     {% endif %}
-                    
-                    <!-- Runden Dropdown -->
+
                     <div class="relative group">
-                        <button class="hover:text-blue-200 text-sm flex items-center gap-1">
-                            Runden ▼
-                        </button>
-                        <div class="absolute left-0 mt-0 w-48 bg-white rounded-md shadow-lg py-1 hidden group-hover:block z-50">
+                        <button class="hover:text-blue-200 text-sm flex items-center gap-1 whitespace-nowrap">Runden ▼</button>
+                        <div class="absolute left-0 top-full mt-1 w-52 bg-white rounded-md shadow-lg py-1 hidden group-hover:block z-50">
                             <a href="{{ url_for('main.groups') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">📊 Gruppenphase</a>
-                            <a href="{{ url_for('main.round_last16') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🏆 Sechzehntelfinale</a>
-                            <a href="{{ url_for('main.round_quarter') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🏆 Achtelfinale</a>
-                            <a href="{{ url_for('main.round_semi') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🏆 Viertelfinale</a>
-                            <a href="{{ url_for('main.round_final') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🏆 Halbfinale</a>
+                            <a href="{{ url_for('main.round_last16') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">⚽ Sechzehntelfinale</a>
+                            <a href="{{ url_for('main.round_quarter') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">⚽ Achtelfinale</a>
+                            <a href="{{ url_for('main.round_semi') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">⚽ Viertelfinale</a>
+                            <a href="{{ url_for('main.round_final') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">⚽ Halbfinale</a>
                             <a href="{{ url_for('main.round_champion') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🏆 Finale & Platz 3</a>
                         </div>
                     </div>
-                    <a href="{{ url_for('main.matches') }}" class="hover:text-blue-200 text-sm">Tippen</a>
-                    <a href="{{ url_for('main.special_tips') }}" class="hover:text-blue-200 text-sm">Spezial-Tipps</a>
-                    <a href="{{ url_for('main.history') }}" class="hover:text-blue-200 text-sm">Historie</a>
-                    <a href="{{ url_for('main.profile') }}" class="hover:text-blue-200 text-sm">Profil</a>
+                    <a href="{{ url_for('main.matches') }}" class="hover:text-blue-200 text-sm whitespace-nowrap">Tippen</a>
+                    <a href="{{ url_for('main.special_tips') }}" class="hover:text-blue-200 text-sm whitespace-nowrap">Spezial-Tipps</a>
+                    <a href="{{ url_for('main.history') }}" class="hover:text-blue-200 text-sm whitespace-nowrap">Historie</a>
                     {% if session.is_admin %}
-                    <a href="{{ url_for('admin.index') }}" class="hover:text-yellow-200 text-sm text-yellow-300">Admin</a>
+                    <a href="{{ url_for('admin.index') }}" class="hover:text-yellow-200 text-sm text-yellow-300 whitespace-nowrap">Admin</a>
                     {% endif %}
-                    <span class="text-sm text-blue-200">{{ session.user_name }}</span>
-                    <a href="{{ url_for('auth.logout') }}" class="text-sm bg-blue-700 hover:bg-blue-800 px-3 py-1 rounded">Logout</a>
+                    <a href="{{ url_for('main.profile') }}" class="hover:text-blue-200 text-sm whitespace-nowrap">{{ session.user_name }}</a>
+                    <a href="{{ url_for('auth.logout') }}" class="text-sm bg-blue-700 hover:bg-blue-800 px-3 py-1 rounded whitespace-nowrap">Logout</a>
                 </div>
+
+                <!-- Mobile: hamburger button -->
+                <button id="mobile-menu-btn" class="md:hidden p-2 rounded hover:bg-blue-700" aria-label="Menü">
+                    <svg id="icon-open" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                    <svg id="icon-close" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
                 {% endif %}
             </div>
         </div>
+
+        {% if session.user_id %}
+        <!-- Mobile menu (hidden by default) -->
+        <div id="mobile-menu" class="hidden md:hidden bg-blue-700 border-t border-blue-500">
+            <div class="px-4 py-3 space-y-1">
+                {% if active_tournaments %}
+                <div class="border-b border-blue-500 pb-2 mb-2">
+                    <p class="text-xs text-blue-300 uppercase mb-1">Turnier</p>
+                    {% for tournament in active_tournaments %}
+                    <form method="POST" action="{{ url_for('main.select_tournament', tournament_id=tournament.id) }}">
+                        <button type="submit" class="block w-full text-left py-1.5 text-sm {% if user_selected_tournament and user_selected_tournament.id == tournament.id %}text-yellow-300 font-medium{% else %}text-white hover:text-blue-200{% endif %}">
+                            {% if user_selected_tournament and user_selected_tournament.id == tournament.id %}✓ {% endif %}{{ tournament.name }}
+                        </button>
+                    </form>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <a href="{{ url_for('main.groups') }}" class="block py-1.5 text-sm hover:text-blue-200">📊 Gruppenphase</a>
+                <a href="{{ url_for('main.round_last16') }}" class="block py-1.5 text-sm hover:text-blue-200">⚽ Sechzehntelfinale</a>
+                <a href="{{ url_for('main.round_quarter') }}" class="block py-1.5 text-sm hover:text-blue-200">⚽ Achtelfinale</a>
+                <a href="{{ url_for('main.round_semi') }}" class="block py-1.5 text-sm hover:text-blue-200">⚽ Viertelfinale</a>
+                <a href="{{ url_for('main.round_final') }}" class="block py-1.5 text-sm hover:text-blue-200">⚽ Halbfinale</a>
+                <a href="{{ url_for('main.round_champion') }}" class="block py-1.5 text-sm hover:text-blue-200">🏆 Finale & Platz 3</a>
+
+                <div class="border-t border-blue-500 pt-2 mt-2 space-y-1">
+                    <a href="{{ url_for('main.matches') }}" class="block py-1.5 text-sm hover:text-blue-200">Tippen</a>
+                    <a href="{{ url_for('main.special_tips') }}" class="block py-1.5 text-sm hover:text-blue-200">Spezial-Tipps</a>
+                    <a href="{{ url_for('main.history') }}" class="block py-1.5 text-sm hover:text-blue-200">Historie</a>
+                    <a href="{{ url_for('main.profile') }}" class="block py-1.5 text-sm hover:text-blue-200">Profil ({{ session.user_name }})</a>
+                    {% if session.is_admin %}
+                    <a href="{{ url_for('admin.index') }}" class="block py-1.5 text-sm text-yellow-300 hover:text-yellow-200">Admin</a>
+                    {% endif %}
+                    <a href="{{ url_for('auth.logout') }}" class="block py-1.5 text-sm hover:text-blue-200">Logout</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </nav>
+
+    <script>
+        const btn = document.getElementById('mobile-menu-btn');
+        const menu = document.getElementById('mobile-menu');
+        const iconOpen = document.getElementById('icon-open');
+        const iconClose = document.getElementById('icon-close');
+        if (btn) {
+            btn.addEventListener('click', () => {
+                menu.classList.toggle('hidden');
+                iconOpen.classList.toggle('hidden');
+                iconClose.classList.toggle('hidden');
+            });
+        }
+    </script>
 
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}

@@ -12,7 +12,8 @@
     </div>
 
     <div class="bg-white rounded-lg shadow-md overflow-hidden">
-        <table class="w-full text-sm">
+        <div class="overflow-x-auto">
+        <table class="w-full text-sm min-w-[480px]">
             <thead class="bg-gray-50 border-b">
                 <tr>
                     <th class="px-4 py-3 text-left font-semibold text-gray-600">Spieler</th>
@@ -52,6 +53,7 @@
                 {% endfor %}
             </tbody>
         </table>
+        </div>
     </div>
 </div>
 {% endblock %}

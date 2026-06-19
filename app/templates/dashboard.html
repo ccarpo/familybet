@@ -54,50 +54,43 @@
     <div class="bg-white rounded-lg shadow-md overflow-hidden">
         <h2 class="text-lg font-bold p-4 pb-2">📊 Aktuelle Rangliste</h2>
         {% if leaderboard %}
-        <!-- Header Row -->
-        <div class="bg-gray-50 border-b px-4 py-3 grid grid-cols-12 gap-2 text-sm font-semibold text-gray-600">
-            <div class="col-span-1 text-center">Platz</div>
-            <div class="col-span-4">Name</div>
-            <div class="col-span-2 text-center">🎯</div>
-            <div class="col-span-2 text-center">📊</div>
-            <div class="col-span-2 text-center">✓</div>
-            <div class="col-span-1 text-right">Gesamt</div>
+        <div class="overflow-x-auto">
+        <table class="w-full text-sm min-w-[320px]">
+            <thead class="bg-gray-50 border-b">
+                <tr>
+                    <th class="px-3 py-2 text-center font-semibold text-gray-600 w-10">#</th>
+                    <th class="px-3 py-2 text-left font-semibold text-gray-600">Name</th>
+                    <th class="px-3 py-2 text-center font-semibold text-green-600 whitespace-nowrap" title="Exakt">🎯</th>
+                    <th class="px-3 py-2 text-center font-semibold text-blue-600 whitespace-nowrap" title="Differenz">📊</th>
+                    <th class="px-3 py-2 text-center font-semibold text-yellow-600 whitespace-nowrap" title="Sieger">✓</th>
+                    <th class="px-3 py-2 text-right font-semibold text-gray-600 whitespace-nowrap">Pkt.</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+            {% for entry in leaderboard %}
+            <tr class="{% if entry.user.id == user.id %}bg-blue-50{% else %}hover:bg-gray-50{% endif %}">
+                <td class="px-3 py-2 text-center">
+                    {% if entry.rank == 1 %}🥇
+                    {% elif entry.rank == 2 %}🥈
+                    {% elif entry.rank == 3 %}🥉
+                    {% else %}<span class="text-gray-500">{{ entry.rank }}</span>
+                    {% endif %}
+                </td>
+                <td class="px-3 py-2 font-medium">
+                    {{ entry.user.name }}
+                    {% if entry.user.id == user.id %}<span class="text-xs text-blue-600">(Du)</span>{% endif %}
+                </td>
+                <td class="px-3 py-2 text-center text-green-600 font-semibold">{{ entry.exact_predictions }}</td>
+                <td class="px-3 py-2 text-center text-blue-600 font-semibold">{{ entry.correct_diffs }}</td>
+                <td class="px-3 py-2 text-center text-yellow-600 font-semibold">{{ entry.correct_winners }}</td>
+                <td class="px-3 py-2 text-right font-bold {% if entry.total_points > 0 %}text-green-700{% else %}text-gray-400{% endif %}">
+                    {{ entry.total_points }}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
         </div>
-
-        <!-- Data Rows -->
-        {% for entry in leaderboard %}
-        <div class="border-b last:border-0 px-4 py-3 grid grid-cols-12 gap-2 items-center {% if entry.user.id == user.id %}bg-blue-50{% endif %}">
-            <div class="col-span-1 text-center">
-                {% if entry.rank == 1 %}
-                <span class="text-2xl">🥇</span>
-                {% elif entry.rank == 2 %}
-                <span class="text-2xl">🥈</span>
-                {% elif entry.rank == 3 %}
-                <span class="text-2xl">🥉</span>
-                {% else %}
-                <span class="text-gray-500">{{ entry.rank }}</span>
-                {% endif %}
-            </div>
-            <div class="col-span-4 font-medium">
-                {{ entry.user.name }}
-                {% if entry.user.id == user.id %}
-                <span class="text-xs text-blue-600">(Du)</span>
-                {% endif %}
-            </div>
-            <div class="col-span-2 text-center text-green-600 font-semibold">
-                {{ entry.exact_predictions }}
-            </div>
-            <div class="col-span-2 text-center text-blue-600 font-semibold">
-                {{ entry.correct_diffs }}
-            </div>
-            <div class="col-span-2 text-center text-yellow-600 font-semibold">
-                {{ entry.correct_winners }}
-            </div>
-            <div class="col-span-1 text-right font-bold text-lg {% if entry.total_points > 0 %}text-green-700{% else %}text-gray-400{% endif %}">
-                {{ entry.total_points }}
-            </div>
-        </div>
-        {% endfor %}
         {% else %}
         <p class="text-gray-500 text-sm p-4">Noch keine Spieler vorhanden.</p>
         {% endif %}

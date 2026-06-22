@@ -51,11 +51,15 @@ def init_scheduler(app):
 
 
 def _has_live_matches():
-    """Check if any match is currently live (within 120 min window)."""
+    """Check if any match is currently live or recently started but not finished.
+
+    The 15-minute smart sync runs for up to 4 hours after a match start to
+    catch delayed final results from the provider.
+    """
     try:
         from app.models import Match
         now = datetime.utcnow()
-        window_start = now - timedelta(minutes=120)
+        window_start = now - timedelta(hours=4)
         live = Match.query.filter(
             Match.is_finished == False,
             Match.match_date >= window_start,
@@ -140,7 +144,7 @@ def sync_matches_job():
             from app.services.openligadb import OpenLigaDBClient
             client = OpenLigaDBClient()
             synced = client.sync_matches()
-            print(f"[Daily Sync] Completed: {synced} new matches")
+            print(f"[Daily Sync] Completed: {synced} matches synced")
         except Exception as e:
             print(f"[Daily Sync] Failed: {e}")
 

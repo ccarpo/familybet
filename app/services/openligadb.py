@@ -117,7 +117,8 @@ class OpenLigaDBClient:
                 if 'Gruppe' in r.name:
                     round_type_map[r.name.replace('Gruppe ', 'Gruppe')] = r.round_type
         
-        synced_count = 0
+        new_count = 0
+        updated_count = 0
         
         for match_data in matches_data:
             match_id = match_data.get('matchID')
@@ -168,6 +169,13 @@ class OpenLigaDBClient:
             
             if existing_match:
                 # Update existing match
+                old_score1 = existing_match.team1_score
+                old_score2 = existing_match.team2_score
+                old_finished = existing_match.is_finished
+                old_date = existing_match.match_date
+                old_round_name = existing_match.round_name
+                old_round_type = existing_match.round_type
+                
                 existing_match.match_date = match_date
                 existing_match.team1_score = team1_score
                 existing_match.team2_score = team2_score
@@ -175,6 +183,20 @@ class OpenLigaDBClient:
                 existing_match.round_name = round_name
                 existing_match.round_type = round_type
                 existing_match.last_updated = datetime.utcnow()
+                
+                # Normalize datetimes for comparison (database may be naive, parsed is aware)
+                old_date_cmp = old_date.replace(tzinfo=None) if old_date and old_date.tzinfo else old_date
+                new_date_cmp = match_date.replace(tzinfo=None) if match_date.tzinfo else match_date
+                
+                if any([
+                    existing_match.team1_score != old_score1,
+                    existing_match.team2_score != old_score2,
+                    existing_match.is_finished != old_finished,
+                    new_date_cmp != old_date_cmp,
+                    existing_match.round_name != old_round_name,
+                    existing_match.round_type != old_round_type,
+                ]):
+                    updated_count += 1
             else:
                 # Create new match
                 new_match = Match(
@@ -196,15 +218,15 @@ class OpenLigaDBClient:
                     is_finished=is_finished
                 )
                 db.session.add(new_match)
-                synced_count += 1
+                new_count += 1
         
         db.session.commit()
-        print(f'Synced {synced_count} new matches, updated existing')
+        print(f'Synced {new_count} new matches, {updated_count} updated')
         
         # Calculate points for finished matches
         self.calculate_points_for_finished_matches()
         
-        return synced_count
+        return new_count + updated_count
     
     def calculate_points_for_finished_matches(self):
         """Calculate points for all bets on finished matches"""

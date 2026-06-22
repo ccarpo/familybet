@@ -50,8 +50,8 @@ def dashboard():
         upcoming_query = upcoming_query.filter_by(league_shortcut=league_shortcut)
     upcoming = upcoming_query.order_by(Match.match_date).limit(5).all()
 
-    # Get last 5 finished matches
-    last_query = Match.query.filter_by(is_finished=True)
+    # Get last 5 started matches (finished or still running)
+    last_query = Match.query.filter(Match.match_date <= now)
     if league_shortcut:
         last_query = last_query.filter_by(league_shortcut=league_shortcut)
     last_matches = last_query.order_by(Match.match_date.desc()).limit(5).all()

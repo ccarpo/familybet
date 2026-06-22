@@ -479,12 +479,10 @@ def _import_matches_from_provider(matches_data, league_shortcut, season):
     """Import matches from provider data into database."""
     from app.services.openligadb import OpenLigaDBClient
     
-    # Reuse existing sync logic
+    # Reuse existing sync logic. Fetch fresh data directly from OpenLigaDB
+    # because the provider's MatchData format differs from the raw API format
+    # expected by OpenLigaDBClient.sync_matches().
     service = OpenLigaDBClient()
-    
-    # Override fetch to use our already-fetched data
-    service.get_match_data = lambda s, l: [m.to_dict() for m in matches_data]
-    
     return service.sync_matches(league_shortcut, season)
 
 

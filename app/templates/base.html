@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}FamilyBet - WM 2026{% endblock %}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="{{ url_for('static', filename='vendor/tailwindcss.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/htmx.min.js') }}"></script>
     <style>
         .match-card { transition: all 0.2s; }
         .match-card:hover { transform: translateY(-2px); }

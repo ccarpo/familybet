@@ -11,7 +11,13 @@ _app_ref = None
 def init_scheduler(app):
     """Initialize the background scheduler for periodic tasks"""
     global scheduler, _app_ref
-    
+
+    # In Flask debug mode the reloader forks a child process — only start
+    # the scheduler in the actual worker process, not the monitor process.
+    import os
+    if app.debug and os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
+        return
+
     if scheduler is not None:
         return
     
@@ -96,22 +102,22 @@ def smart_sync_job():
                     except Exception as e:
                         print(f"[Live Sync] Failed for {tournament.name}: {e}")
             
-            # Find newly finished matches (finished in last 20 min)
-            from app.models import Match
-            recently_finished = Match.query.filter(
-                Match.is_finished == True,
-                Match.last_updated >= datetime.utcnow() - timedelta(minutes=20)
-            ).all()
-            
             # Recalculate points for newly finished matches
             ScoringService.recalculate_all_match_points()
-            
-            # Send result notifications
-            if recently_finished:
-                from app.services.email_service import send_match_result_notifications
-                for match in recently_finished:
+
+            # Send result notifications for finished matches not yet emailed
+            from app.models import Match, EmailLog
+            from app.services.email_service import send_match_result_notifications
+            finished_matches = Match.query.filter(Match.is_finished == True).all()
+            notify_matches = [
+                m for m in finished_matches
+                if not EmailLog.already_sent('match_result_queued', ref_id=str(m.id))
+            ]
+            if notify_matches:
+                for match in notify_matches:
+                    EmailLog.record('match_result_queued', ref_id=str(match.id))
                     send_match_result_notifications(match)
-                print(f"[Live Sync] Notified for {len(recently_finished)} finished match(es)")
+                print(f"[Live Sync] Notified for {len(notify_matches)} finished match(es)")
             
             print("[Live Sync] Done")
         except Exception as e:

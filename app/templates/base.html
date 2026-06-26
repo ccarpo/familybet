@@ -27,7 +27,7 @@
                         <button class="hover:text-blue-200 text-sm flex items-center gap-1 bg-blue-700 px-3 py-1 rounded whitespace-nowrap">
                             {% if user_selected_tournament %}{{ user_selected_tournament.short_name|upper }}{% else %}Turnier{% endif %} ▼
                         </button>
-                        <div class="absolute left-0 top-full mt-1 w-56 bg-white rounded-md shadow-lg py-1 hidden group-hover:block z-50">
+                        <div class="absolute left-0 top-full pt-1 w-56 hidden group-hover:block z-50"><div class="bg-white rounded-md shadow-lg py-1">
                             {% for tournament in active_tournaments %}
                             <form method="POST" action="{{ url_for('main.select_tournament', tournament_id=tournament.id) }}" class="block">
                                 <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {% if user_selected_tournament and user_selected_tournament.id == tournament.id %}bg-blue-50 font-medium{% endif %}">
@@ -35,20 +35,20 @@
                                 </button>
                             </form>
                             {% endfor %}
-                        </div>
+                        </div></div>
                     </div>
                     {% endif %}
 
                     <div class="relative group">
                         <button class="hover:text-blue-200 text-sm flex items-center gap-1 whitespace-nowrap">Runden ▼</button>
-                        <div class="absolute left-0 top-full mt-1 w-52 bg-white rounded-md shadow-lg py-1 hidden group-hover:block z-50">
+                        <div class="absolute left-0 top-full pt-1 w-52 hidden group-hover:block z-50"><div class="bg-white rounded-md shadow-lg py-1">
                             <a href="{{ url_for('main.groups') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">📊 Gruppenphase</a>
                             <a href="{{ url_for('main.round_last16') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">⚽ Sechzehntelfinale</a>
                             <a href="{{ url_for('main.round_quarter') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">⚽ Achtelfinale</a>
                             <a href="{{ url_for('main.round_semi') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">⚽ Viertelfinale</a>
                             <a href="{{ url_for('main.round_final') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">⚽ Halbfinale</a>
                             <a href="{{ url_for('main.round_champion') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🏆 Finale & Platz 3</a>
-                        </div>
+                        </div></div>
                     </div>
                     <a href="{{ url_for('main.matches') }}" class="hover:text-blue-200 text-sm whitespace-nowrap">Tippen</a>
                     <a href="{{ url_for('main.special_tips') }}" class="hover:text-blue-200 text-sm whitespace-nowrap">Spezial-Tipps</a>

@@ -48,12 +48,13 @@ class OpenLigaDBClient:
         return self._get(f'/getavailableteams/{shortcut}/{s}')
     
     def parse_match_datetime(self, match_data):
-        """Parse match datetime from API response"""
+        """Parse match datetime from API response (always use UTC field)"""
         try:
-            date_str = match_data.get('matchDateTime')
+            date_str = match_data.get('matchDateTimeUTC') or match_data.get('matchDateTime')
             if date_str:
-                # Remove timezone info from string for parsing
-                return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                dt = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                # Strip timezone info so we store a naive UTC datetime
+                return dt.replace(tzinfo=None)
         except (ValueError, TypeError):
             pass
         return None
@@ -79,6 +80,17 @@ class OpenLigaDBClient:
         
         return None, None
     
+    # Map groupOrderID -> (round_name, round_type) for knockout rounds
+    # groupOrderID 1-3 are Gruppenphase matchdays; 4+ are KO rounds
+    KO_ROUND_MAP = {
+        4: ('Sechzehntelfinale', 'knockout'),
+        5: ('Achtelfinale', 'knockout'),
+        6: ('Viertelfinale', 'knockout'),
+        7: ('Halbfinale', 'knockout'),
+        8: ('Finale', 'knockout'),
+        9: ('Finale', 'knockout'),
+    }
+
     def sync_matches(self, league_shortcut=None, season=None):
         """Sync matches from OpenLigaDB to local database"""
         from app.models import Tournament, TournamentRound, TournamentTeam
@@ -141,31 +153,34 @@ class OpenLigaDBClient:
             team1_score, team2_score = self.parse_match_results(match_data)
             is_finished = match_data.get('matchIsFinished', False)
             
-            # Determine round_name and round_type from tournament data
+            # Determine round_name and round_type
             team1_name = team1.get('teamName', '')
             team2_name = team2.get('teamName', '')
-            
-            # Try to find group from TournamentTeam
-            round_name = 'Unknown'
-            round_type = None
-            
-            if active_tournament:
-                # Look up team group assignments
-                team1_entry = TournamentTeam.query.filter_by(
-                    tournament_id=active_tournament.id,
-                    team_name=team1_name
-                ).first()
-                
-                if team1_entry and team1_entry.group:
-                    round_name = team1_entry.group.name
-                    round_type = round_type_map.get(round_name)
-            
-            # Fallback: use API group info if available
-            if round_name == 'Unknown' and group:
-                group_name = group.get('groupName', '')
-                if group_name:
-                    round_name = group_name
-                    round_type = round_type_map.get(round_name, 'group')
+            group_order_id = group.get('groupOrderID', 0)
+
+            # KO rounds: determined purely by groupOrderID, never by team lookup
+            if group_order_id in self.KO_ROUND_MAP:
+                round_name, round_type = self.KO_ROUND_MAP[group_order_id]
+            else:
+                # Group phase: look up team's actual group (Gruppe A/B/...)
+                round_name = 'Unknown'
+                round_type = None
+
+                if active_tournament:
+                    team1_entry = TournamentTeam.query.filter_by(
+                        tournament_id=active_tournament.id,
+                        team_name=team1_name
+                    ).first()
+                    if team1_entry and team1_entry.group:
+                        round_name = team1_entry.group.name
+                        round_type = round_type_map.get(round_name)
+
+                # Fallback: only use API groupName if still unknown (and it looks like a real group)
+                if round_name == 'Unknown' and group:
+                    group_name = group.get('groupName', '')
+                    if group_name and 'Gruppenphase' not in group_name:
+                        round_name = group_name
+                        round_type = round_type_map.get(round_name, 'group')
             
             if existing_match:
                 # Update existing match
@@ -175,14 +190,23 @@ class OpenLigaDBClient:
                 old_date = existing_match.match_date
                 old_round_name = existing_match.round_name
                 old_round_type = existing_match.round_type
-                
+
                 existing_match.match_date = match_date
                 existing_match.team1_score = team1_score
                 existing_match.team2_score = team2_score
                 existing_match.is_finished = is_finished
-                existing_match.round_name = round_name
-                existing_match.round_type = round_type
                 existing_match.last_updated = datetime.utcnow()
+
+                # Only update team names for KO matches (placeholders get resolved)
+                if group_order_id in self.KO_ROUND_MAP:
+                    existing_match.team1_name = team1_name
+                    existing_match.team2_name = team2_name
+
+                # Update round from authoritative map; but never overwrite a valid
+                # group assignment with 'Unknown' (team name not in TournamentTeam)
+                if round_name != 'Unknown':
+                    existing_match.round_name = round_name
+                    existing_match.round_type = round_type
                 
                 # Normalize datetimes for comparison (database may be naive, parsed is aware)
                 old_date_cmp = old_date.replace(tzinfo=None) if old_date and old_date.tzinfo else old_date
@@ -205,7 +229,7 @@ class OpenLigaDBClient:
                     league_season=s,
                     round_name=round_name,
                     round_type=round_type,
-                    group_order_id=group.get('groupOrderID', 0),
+                    group_order_id=group_order_id,
                     team1_id=team1.get('teamId', 0),
                     team1_name=team1.get('teamName', 'Unknown'),
                     team1_short=team1.get('shortName', ''),

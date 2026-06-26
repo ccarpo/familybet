@@ -26,51 +26,130 @@
         </div>
     </div>
 
-    <!-- Actions -->
+    <!-- Tournament-specific actions -->
     <div class="bg-white rounded-lg shadow-md p-4">
-        <h2 class="text-lg font-bold mb-3">🔄 Aktionen</h2>
-        
+        <div class="flex items-center gap-2 mb-3">
+            <h2 class="text-lg font-bold">🏆 Turnier-Aktionen</h2>
+            {% if active_tournament %}
+            <span class="text-sm bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-medium">{{ active_tournament.name }}</span>
+            {% endif %}
+        </div>
         <div class="flex flex-wrap gap-2">
+            {% if active_tournament and active_tournament.provider_type != 'manual' %}
             <form method="POST" action="{{ url_for('admin.sync_matches') }}" class="inline">
                 <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                    Spiele synchronisieren
+                    🔄 Spiele synchronisieren
                 </button>
             </form>
-            
+            {% endif %}
+
             <form method="POST" action="{{ url_for('admin.recalculate_points') }}" class="inline">
                 <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-                    Punkte neu berechnen
+                    📊 Punkte neu berechnen
                 </button>
             </form>
-            
+
             <form method="POST" action="{{ url_for('admin.calculate_tournament_points') }}" class="inline">
                 <button type="submit" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
-                    Turnierpunkte berechnen
+                    🏅 Turnierpunkte berechnen
                 </button>
             </form>
-            
-            <a href="{{ url_for('admin.check_data') }}" class="inline-block bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
-                Daten prüfen
-            </a>
-            
-            <a href="{{ url_for('admin_tournaments.tournaments') }}" class="inline-block bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-                🏆 Turniere verwalten
-            </a>
-            
+
             <a href="{{ url_for('admin.edit_groups') }}" class="inline-block bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700">
                 🎯 Gruppen verwalten
             </a>
 
-            <a href="{{ url_for('admin.phase_locks') }}" class="inline-block bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+            <a href="{{ url_for('admin.phase_locks') }}" class="inline-block bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">
                 🔒 Tipprunden sperren
             </a>
+        </div>
+    </div>
+
+    <!-- Application-wide actions -->
+    <div class="bg-white rounded-lg shadow-md p-4">
+        <h2 class="text-lg font-bold mb-3">⚙️ Anwendungs-Aktionen</h2>
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ url_for('admin_tournaments.tournaments') }}" class="inline-block bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+                🏆 Turniere verwalten
+            </a>
+            <a href="{{ url_for('admin.check_data') }}" class="inline-block bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+                🔍 Daten prüfen
+            </a>
             <a href="{{ url_for('admin.email_settings') }}" class="inline-block bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700">
-                📧 Email-Einstellungen
+                � Email-Einstellungen
             </a>
             <a href="{{ url_for('admin.scheduler_status') }}" class="inline-block bg-slate-600 text-white px-4 py-2 rounded hover:bg-slate-700">
                 ⏱️ Scheduler
             </a>
         </div>
+    </div>
+
+    <!-- Emergency Result Override -->
+    <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-red-500">
+        <h2 class="text-lg font-bold mb-1 text-red-700">� Ergebnis manuell überschreiben</h2>
+        <p class="text-xs text-gray-500 mb-3">Für Notfälle: Ergebnis direkt setzen, unabhängig von der Datenquelle. Punkte werden sofort neu berechnet.</p>
+
+        {% if recent_matches %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="text-left px-2 py-2">Spiel</th>
+                        <th class="text-center px-2 py-2">Datum</th>
+                        <th class="text-center px-2 py-2">Aktuell</th>
+                        <th class="text-center px-2 py-2" colspan="3">Überschreiben</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for match in recent_matches %}
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="px-2 py-2">
+                            <div class="font-medium">{{ match.team1_name }} vs {{ match.team2_name }}</div>
+                            <div class="text-xs text-gray-400">{{ match.round_name }}</div>
+                        </td>
+                        <td class="px-2 py-2 text-center text-xs text-gray-500 whitespace-nowrap">
+                            {{ match.match_date.strftime('%d.%m %H:%M') }}
+                        </td>
+                        <td class="px-2 py-2 text-center font-bold">
+                            {% if match.is_finished %}
+                            <span class="text-green-700">{{ match.team1_score }}:{{ match.team2_score }}</span>
+                            {% elif match.team1_score is not none %}
+                            <span class="text-yellow-600">{{ match.team1_score }}:{{ match.team2_score }} (live)</span>
+                            {% else %}
+                            <span class="text-gray-400">–:–</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-2 py-2" colspan="3">
+                            <form method="POST" action="{{ url_for('admin.override_match_result', match_id=match.id) }}"
+                                  class="flex items-center gap-2 justify-center"
+                                  onsubmit="return confirm('Ergebnis wirklich überschreiben?')">
+                                <input type="number" name="team1_score" min="0" max="99"
+                                       value="{{ match.team1_score if match.team1_score is not none else '' }}"
+                                       class="w-12 text-center border rounded py-1 text-sm" placeholder="–">
+                                <span class="text-gray-400">:</span>
+                                <input type="number" name="team2_score" min="0" max="99"
+                                       value="{{ match.team2_score if match.team2_score is not none else '' }}"
+                                       class="w-12 text-center border rounded py-1 text-sm" placeholder="–">
+                                <label class="flex items-center gap-1 text-xs text-gray-600 cursor-pointer">
+                                    <input type="checkbox" name="is_finished" value="1"
+                                           {% if match.is_finished %}checked{% endif %}
+                                           class="w-4 h-4">
+                                    Fertig
+                                </label>
+                                <button type="submit"
+                                        class="bg-red-600 text-white text-xs px-3 py-1 rounded hover:bg-red-700 whitespace-nowrap">
+                                    ✏️ Setzen
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-gray-500 text-sm">Keine gestarteten Spiele vorhanden.</p>
+        {% endif %}
     </div>
 
     <!-- Scoring Configuration -->

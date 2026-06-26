@@ -108,55 +108,81 @@ def dashboard():
                 all_bets_history[bet.match_id] = {}
             all_bets_history[bet.match_id][bet.user_id] = bet
 
-    # Calculate cumulative points for each user after each match
-    points_history = {}
-    for u in all_users:
-        points_history[u.id] = {
-            'name': u.name,
-            'data': [],
-            'cumulative': 0
-        }
-
-    chart_labels = []
+    # Aggregate finished matches by date (matchday) for cleaner chart x-axis
+    from collections import OrderedDict
+    matchdays = OrderedDict()  # date_str -> list of match ids
     for match in all_finished_matches:
-        # Short label: "Gruppe A: Mex vs Süd"
-        short_team1 = match.team1_name[:3] if len(match.team1_name) > 3 else match.team1_name
-        short_team2 = match.team2_name[:3] if len(match.team2_name) > 3 else match.team2_name
-        label = f"{match.round_name[:7]}: {short_team1} vs {short_team2}"
-        chart_labels.append(label)
+        day = match.match_date.strftime('%d.%m')
+        if day not in matchdays:
+            matchdays[day] = []
+        matchdays[day].append(match.id)
 
+    chart_labels = list(matchdays.keys())
+
+    # Cumulative points per user per matchday
+    points_history = {u.id: {'cumulative': 0, 'data': []} for u in all_users}
+    for day, match_ids in matchdays.items():
         for u in all_users:
-            match_points = 0
-            if match.id in all_bets_history and u.id in all_bets_history[match.id]:
-                match_points = all_bets_history[match.id][u.id].points_earned or 0
-
-            points_history[u.id]['cumulative'] += match_points
+            day_points = sum(
+                (all_bets_history.get(mid, {}).get(u.id, None) or type('', (), {'points_earned': 0})()).points_earned or 0
+                if False else
+                (all_bets_history.get(mid, {}).get(u.id) and all_bets_history[mid][u.id].points_earned or 0)
+                for mid in match_ids
+            )
+            points_history[u.id]['cumulative'] += day_points
             points_history[u.id]['data'].append(points_history[u.id]['cumulative'])
 
-    # Prepare chart data for template
-    chart_data = {
-        'labels': chart_labels,
-        'datasets': []
-    }
+    # Calculate rank per user per matchday (1 = best)
+    rank_history = {u.id: [] for u in all_users}
+    for day_idx in range(len(chart_labels)):
+        day_totals = [(u.id, points_history[u.id]['data'][day_idx]) for u in all_users]
+        day_totals.sort(key=lambda x: x[1], reverse=True)
+        day_rank = {}
+        for rank_pos, (uid, pts) in enumerate(day_totals):
+            # Tied ranks: same points = same rank
+            if rank_pos > 0 and pts == day_totals[rank_pos - 1][1]:
+                day_rank[uid] = day_rank[day_totals[rank_pos - 1][0]]
+            else:
+                day_rank[uid] = rank_pos + 1
+        for u in all_users:
+            rank_history[u.id].append(day_rank[u.id])
 
     colors = [
         '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899',
         '#06B6D4', '#84CC16', '#F97316', '#6366F1', '#14B8A6', '#D946EF'
     ]
 
+    chart_data = {'labels': chart_labels, 'datasets': []}
+    rank_data = {'labels': chart_labels, 'datasets': []}
+
     for idx, u in enumerate(all_users):
         color = colors[idx % len(colors)]
+        is_current = (u.id == user.id)
         chart_data['datasets'].append({
             'label': u.name,
             'data': points_history[u.id]['data'],
             'borderColor': color,
-            'backgroundColor': color + '20',  # Add transparency
+            'backgroundColor': color + '20',
             'tension': 0.3,
-            'pointRadius': 3,
+            'pointRadius': 2 if not is_current else 4,
             'pointHoverRadius': 5,
-            'borderWidth': 2,
-            'fill': False
+            'borderWidth': 3 if is_current else 1.5,
+            'fill': False,
         })
+        rank_data['datasets'].append({
+            'label': u.name,
+            'data': rank_history[u.id],
+            'borderColor': color,
+            'backgroundColor': color + '20',
+            'tension': 0.2,
+            'pointRadius': 2 if not is_current else 4,
+            'pointHoverRadius': 5,
+            'borderWidth': 3 if is_current else 1.5,
+            'fill': False,
+            'stepped': 'after',
+        })
+
+    num_users = len(all_users)
 
     return render_template('dashboard.html',
                           user=user,
@@ -169,7 +195,9 @@ def dashboard():
                           all_users=all_users,
                           all_bets=all_bets_for_display,
                           now=now,
-                          chart_data=chart_data)
+                          chart_data=chart_data,
+                          rank_data=rank_data,
+                          num_users=num_users)
 
 @main_bp.route('/matches')
 def matches():
@@ -458,7 +486,50 @@ def groups():
 @main_bp.route('/round/last16')
 def round_last16():
     """Show Sechzehntelfinale (Round of 16) matches."""
-    return _show_ko_round('Sechzehntelfinale', 'Sechzehntelfinale')
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('auth.login'))
+
+    matches = Match.query.filter(Match.round_name.like('%Sechzehntelfinale%')).order_by(Match.match_date).all()
+    my_bets = {bet.match_id: bet for bet in Bet.query.filter_by(user_id=user.id).all()}
+    qualified_teams = _get_qualified_teams()
+    phase_locks = BettingPhaseLock.get_all_locks()
+
+    # If no matches in DB yet, fetch fixture preview from wm26 API
+    preview_matches = []
+    if not matches:
+        try:
+            import requests
+            resp = requests.get('https://api.openligadb.de/getmatchdata/wm26/2026/4', timeout=10)
+            if resp.status_code == 200:
+                from datetime import datetime
+                for m in resp.json():
+                    utc_str = m.get('matchDateTimeUTC', '')
+                    try:
+                        dt = datetime.fromisoformat(utc_str.replace('Z', '+00:00')).replace(tzinfo=None)
+                    except Exception:
+                        dt = None
+                    loc = m.get('location') or {}
+                    preview_matches.append({
+                        'team1': m['team1']['teamName'],
+                        'team2': m['team2']['teamName'],
+                        'date': dt,
+                        'city': loc.get('locationCity', ''),
+                        'stadium': loc.get('locationStadium', ''),
+                    })
+                preview_matches.sort(key=lambda x: x['date'] or datetime.max)
+        except Exception:
+            pass
+
+    return render_template('ko_round.html',
+                          round_name='Sechzehntelfinale',
+                          matches=matches,
+                          my_bets=my_bets,
+                          qualified_teams=qualified_teams,
+                          user=user,
+                          show_qualifiers=True,
+                          phase_locks=phase_locks,
+                          preview_matches=preview_matches)
 
 
 @main_bp.route('/round/quarter')
@@ -503,7 +574,8 @@ def round_champion():
                           my_bets=my_bets,
                           user=user,
                           show_qualifiers=False,
-                          phase_locks=phase_locks)
+                          phase_locks=phase_locks,
+                          preview_matches=[])
 
 
 def _show_ko_round(round_keyword, display_name):
@@ -531,7 +603,8 @@ def _show_ko_round(round_keyword, display_name):
                           qualified_teams=qualified_teams,
                           user=user,
                           show_qualifiers=True,
-                          phase_locks=phase_locks)
+                          phase_locks=phase_locks,
+                          preview_matches=[])
 
 
 @main_bp.route('/special-tips')

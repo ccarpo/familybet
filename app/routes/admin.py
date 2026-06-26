@@ -47,6 +47,13 @@ def index():
         tournament_id=active_tournament.id if active_tournament else None
     )
     
+    # Recent matches for result overwrite (last 20 started matches)
+    league_shortcut = active_tournament.get_league_shortcut() if active_tournament else None
+    recent_matches_q = Match.query.filter(Match.match_date <= __import__('datetime').datetime.utcnow())
+    if league_shortcut:
+        recent_matches_q = recent_matches_q.filter_by(league_shortcut=league_shortcut)
+    recent_matches = recent_matches_q.order_by(Match.match_date.desc()).limit(20).all()
+
     return render_template('admin/index.html',
                           user=user,
                           stats={
@@ -56,7 +63,9 @@ def index():
                               'total_bets': total_bets
                           },
                           users=users,
-                          scoring_config=scoring_config)
+                          scoring_config=scoring_config,
+                          active_tournament=active_tournament,
+                          recent_matches=recent_matches)
 
 @admin_bp.route('/admin/scoring', methods=['POST'])
 def update_scoring():
@@ -415,6 +424,37 @@ def toggle_user_visibility(user_id):
     flash(f'Benutzer {target_user.name} ist jetzt {status} in der Rangliste', 'success')
 
     return redirect(url_for('admin.index'))
+
+@admin_bp.route('/admin/matches/<int:match_id>/override', methods=['POST'])
+def override_match_result(match_id):
+    """Emergency manual override of a match result, bypassing the data provider."""
+    match = Match.query.get_or_404(match_id)
+    try:
+        score1 = request.form.get('team1_score', '').strip()
+        score2 = request.form.get('team2_score', '').strip()
+        is_finished = request.form.get('is_finished') == '1'
+
+        if score1 == '' or score2 == '':
+            flash('Beide Tore müssen angegeben werden', 'error')
+            return redirect(url_for('admin.index'))
+
+        match.team1_score = int(score1)
+        match.team2_score = int(score2)
+        match.is_finished = is_finished
+        from datetime import datetime
+        match.last_updated = datetime.utcnow()
+        db.session.commit()
+
+        if is_finished:
+            ScoringService.recalculate_all_match_points()
+
+        flash(f'Ergebnis überschrieben: {match.team1_name} {match.team1_score}:{match.team2_score} {match.team2_name}', 'success')
+    except ValueError:
+        flash('Ungültige Toranzahl', 'error')
+    except Exception as e:
+        flash(f'Fehler: {str(e)}', 'error')
+    return redirect(url_for('admin.index'))
+
 
 @admin_bp.route('/admin/sync', methods=['POST'])
 def sync_matches():

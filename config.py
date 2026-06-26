@@ -7,7 +7,7 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # OpenLigaDB – fallback defaults if not set per-tournament in DB
-    WORLD_CUP_LEAGUE_SHORTCUT = os.environ.get('WORLD_CUP_LEAGUE_SHORTCUT', 'wm2026')
+    WORLD_CUP_LEAGUE_SHORTCUT = os.environ.get('WORLD_CUP_LEAGUE_SHORTCUT', 'wm26')
     WORLD_CUP_SEASON = int(os.environ.get('WORLD_CUP_SEASON', 2026))
 
     # API-Football (optional alternative data source)

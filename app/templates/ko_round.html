@@ -160,6 +160,39 @@
     {% if not phase_locks[phase_key].is_locked %}
     </form>
     {% endif %}
+    {% elif preview_matches %}
+    <!-- Fixture preview from OpenLigaDB (not yet in local DB) -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+        <p class="text-blue-800 text-sm font-medium">ℹ️ Die Paarungen wurden bereits festgelegt. Tipps können noch nicht abgegeben werden – die Spiele werden nach Abschluss der Gruppenphase freigegeben.</p>
+    </div>
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="px-4 py-3 bg-blue-100">
+            <h2 class="text-lg font-bold text-blue-800">Vorläufige Paarungen</h2>
+        </div>
+        <div class="divide-y divide-gray-200">
+            {% for m in preview_matches %}
+            <div class="p-4">
+                <div class="flex items-center justify-between mb-1 text-xs text-gray-400">
+                    <span>{% if m.date %}{{ m.date.strftime('%d.%m.%Y %H:%M') }} UTC{% endif %}</span>
+                    <span>{{ m.city }}{% if m.stadium %} · {{ m.stadium }}{% endif %}</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="flex-1 text-right">
+                        <span class="font-semibold text-lg {% if m.team1.startswith('1') or m.team1.startswith('2') or m.team1.startswith('3') %}text-gray-400 italic{% endif %}">
+                            {{ m.team1 }}
+                        </span>
+                    </div>
+                    <span class="text-xl font-bold text-gray-300">vs</span>
+                    <div class="flex-1">
+                        <span class="font-semibold text-lg {% if m.team2.startswith('1') or m.team2.startswith('2') or m.team2.startswith('3') %}text-gray-400 italic{% endif %}">
+                            {{ m.team2 }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
     {% else %}
     <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-8 text-center">
         <p class="text-yellow-800">Noch keine Spiele für diese Runde vorhanden.</p>

@@ -423,7 +423,7 @@ def groups():
                 groups_data[group_name]['teams'][team_name] = {
                     'id': team_id,
                     'played': 0, 'won': 0, 'drawn': 0, 'lost': 0,
-                    'goals_for': 0, 'goals_against': 0, 'points': 0
+                    'goals_for': 0, 'goals_against': 0, 'goal_diff': 0, 'points': 0
                 }
 
     # Calculate standings from finished matches
@@ -453,6 +453,16 @@ def groups():
                     data['teams'][t2]['drawn'] += 1
                     data['teams'][t1]['points'] += 1
                     data['teams'][t2]['points'] += 1
+
+    # Pre-sort teams within each group: points desc, goal_diff desc, goals_for desc
+    for group_name, data in groups_data.items():
+        for stats in data['teams'].values():
+            stats['goal_diff'] = stats['goals_for'] - stats['goals_against']
+        data['sorted_teams'] = sorted(
+            data['teams'].items(),
+            key=lambda x: (x[1]['points'], x[1]['goal_diff'], x[1]['goals_for']),
+            reverse=True
+        )
 
     # Get user bets (filtered by tournament group matches)
     group_match_ids = [m.id for m in group_matches]
@@ -698,8 +708,8 @@ def _get_qualified_teams():
     qualified = {'1st': [], '2nd': [], '3rd': []}
 
     for group_name, teams in groups_data.items():
-        # Sort by points, then goal difference
-        sorted_teams = sorted(teams.items(), key=lambda x: (x[1]['points'], x[1]['goals_for'] - x[1]['goals_against']), reverse=True)
+        # Sort by points, then goal difference, then goals scored
+        sorted_teams = sorted(teams.items(), key=lambda x: (x[1]['points'], x[1]['goals_for'] - x[1]['goals_against'], x[1]['goals_for']), reverse=True)
 
         if len(sorted_teams) >= 1:
             qualified['1st'].append((group_name, sorted_teams[0][0]))

@@ -84,6 +84,7 @@ class Match(db.Model):
     team1_score = db.Column(db.Integer, nullable=True)
     team2_score = db.Column(db.Integer, nullable=True)
     is_finished = db.Column(db.Boolean, default=False)
+    penalty_winner = db.Column(db.String(10), nullable=True)  # 'team1' or 'team2' if KO draw went to penalties
     
     # Metadata
     last_updated = db.Column(db.DateTime, default=datetime.utcnow)
@@ -195,7 +196,11 @@ class Match(db.Model):
         elif self.team2_score > self.team1_score:
             return self.team2_id
         return None  # Draw
-    
+
+    def get_penalty_winner(self):
+        """Return 'team1' or 'team2' if this KO match was decided by penalties, else None."""
+        return self.penalty_winner
+
     def __repr__(self):
         return f'<Match {self.team1_name} vs {self.team2_name}>'
 
@@ -210,7 +215,8 @@ class Bet(db.Model):
     # Predictions
     team1_score_pred = db.Column(db.Integer, nullable=False)
     team2_score_pred = db.Column(db.Integer, nullable=False)
-    
+    penalty_winner = db.Column(db.String(10), nullable=True)  # 'team1' or 'team2' for KO draws
+
     # Scoring
     points_earned = db.Column(db.Integer, default=0)
     
@@ -221,7 +227,7 @@ class Bet(db.Model):
     # Unique constraint: one bet per user per match
     __table_args__ = (db.UniqueConstraint('user_id', 'match_id', name='unique_user_match_bet'),)
     
-    def calculate_points(self, actual_team1_score, actual_team2_score):
+    def calculate_points(self, actual_team1_score, actual_team2_score, match=None):
         if actual_team1_score is None or actual_team2_score is None:
             return 0
         
@@ -244,7 +250,16 @@ class Bet(db.Model):
         pred_winner = 0 if pred_diff == 0 else (1 if pred_diff > 0 else -1)
         actual_winner = 0 if actual_diff == 0 else (1 if actual_diff > 0 else -1)
         if pred_winner == actual_winner:
-            return config.points_winner
+            points = config.points_winner
+            # Bonus for correct penalty winner in KO draw (predicted draw + actual draw + KO round)
+            is_ko = match.round_type == 'knockout' if match else False
+            predicted_draw = pred_diff == 0
+            actual_draw = actual_diff == 0
+            if is_ko and predicted_draw and actual_draw and self.penalty_winner:
+                actual_penalty_winner = match.get_penalty_winner() if match else None
+                if actual_penalty_winner and self.penalty_winner == actual_penalty_winner:
+                    points += (config.points_penalty_winner or 0)
+            return points
         
         return 0
     
@@ -293,6 +308,9 @@ class ScoringConfig(db.Model):
     points_diff = db.Column(db.Integer, default=2)     # Correct goal difference
     points_winner = db.Column(db.Integer, default=1)    # Correct winner/draw
     
+    # Bonus for correct penalty winner in KO draw prediction
+    points_penalty_winner = db.Column(db.Integer, default=1)
+
     # Extra points for tournament predictions (can be 0 if not used)
     points_champion = db.Column(db.Integer, default=10)      # Correct champion
     points_finalist = db.Column(db.Integer, default=5)     # Correct finalist
@@ -325,6 +343,7 @@ class ScoringConfig(db.Model):
                 points_exact=3,
                 points_diff=2,
                 points_winner=1,
+                points_penalty_winner=1,
                 is_active=True
             )
             db.session.add(config)
@@ -337,7 +356,8 @@ class ScoringConfig(db.Model):
         return ScoringConfig.get_current(tournament_id=tournament_id)
     
     @staticmethod
-    def create_new(points_exact, points_diff, points_winner, 
+    def create_new(points_exact, points_diff, points_winner,
+                   points_penalty_winner=1,
                    points_champion=10, points_finalist=5, points_semifinalist=3,
                    tournament_id=None):
         """Create a new scoring config and deactivate old ones"""
@@ -355,6 +375,7 @@ class ScoringConfig(db.Model):
             points_exact=points_exact,
             points_diff=points_diff,
             points_winner=points_winner,
+            points_penalty_winner=points_penalty_winner,
             points_champion=points_champion,
             points_finalist=points_finalist,
             points_semifinalist=points_semifinalist,

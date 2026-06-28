@@ -224,19 +224,16 @@
                                     {% if not group_locked and not match.is_finished and not match.has_started() %}
                                         {% set my_bet = my_bets.get(match.id) %}
                                         <div class="flex items-center gap-1">
-                                            <input type="number" name="bets" min="0"
+                                            <input type="number" name="bet_match_{{ match.id }}_team1" min="0"
                                                    value="{% if my_bet %}{{ my_bet.team1_score_pred }}{% endif %}"
                                                    class="w-10 text-center text-sm border rounded py-0.5 focus:ring-1 focus:ring-blue-500"
-                                                   placeholder="-"
-                                                   onchange="addBet(this, {{ match.id }}, 1)">
+                                                   placeholder="-">
                                             <span class="text-gray-400">:</span>
-                                            <input type="number" name="bets" min="0"
+                                            <input type="number" name="bet_match_{{ match.id }}_team2" min="0"
                                                    value="{% if my_bet %}{{ my_bet.team2_score_pred }}{% endif %}"
                                                    class="w-10 text-center text-sm border rounded py-0.5 focus:ring-1 focus:ring-blue-500"
-                                                   placeholder="-"
-                                                   onchange="addBet(this, {{ match.id }}, 2)">
+                                                   placeholder="-">
                                         </div>
-                                        <input type="hidden" name="bets" id="bet_{{ match.id }}" value="">
                                     {% endif %}
                                 </div>
                             </div>
@@ -261,25 +258,6 @@
     </form>
 
     <script>
-    // Collect bets for batch submission
-    const batchBets = {};
-    function addBet(input, matchId, team) {
-        if (!batchBets[matchId]) {
-            batchBets[matchId] = { matchId: matchId, score1: '', score2: '' };
-        }
-        if (team === 1) {
-            batchBets[matchId].score1 = input.value;
-        } else {
-            batchBets[matchId].score2 = input.value;
-        }
-        // Update hidden input
-        const hidden = document.getElementById('bet_' + matchId);
-        if (hidden) {
-            hidden.value = matchId + ',' + batchBets[matchId].score1 + ',' + batchBets[matchId].score2;
-        }
-    }
-
-    // Auto-save indicator
     document.getElementById('batch-bets-form').addEventListener('submit', function() {
         const btn = this.querySelector('button[type="submit"]');
         btn.textContent = '💾 Speichern...';

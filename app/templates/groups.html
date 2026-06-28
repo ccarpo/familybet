@@ -42,8 +42,7 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
-                    {% set sorted_teams = data.teams.items()|sort(attribute='1.points', reverse=true) %}
-                    {% for team_name, stats in sorted_teams %}
+                    {% for team_name, stats in data.sorted_teams %}
                     {% set gd = stats.goals_for - stats.goals_against %}
                     <tr class="{% if loop.index <= 2 %}bg-green-50{% elif loop.index == 3 %}bg-yellow-50{% endif %}">
                         <td class="px-3 py-2 font-medium">{{ team_name }}</td>

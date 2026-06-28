@@ -32,7 +32,7 @@ class ScoringService:
             
             bets = Bet.query.filter_by(match_id=match.id).all()
             for bet in bets:
-                points = bet.calculate_points(match.team1_score, match.team2_score)
+                points = bet.calculate_points(match.team1_score, match.team2_score, match=match)
                 bet.points_earned = points
         
         db.session.commit()

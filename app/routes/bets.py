@@ -229,16 +229,26 @@ def place_batch_bets():
                         match_id=match_id
                     ).first()
                     
+                    # Read optional penalty winner (KO matches with draw prediction)
+                    penalty_winner = request.form.get(f'penalty_winner_{match_id}') or None
+                    if penalty_winner not in ('team1', 'team2'):
+                        penalty_winner = None
+                    # Only relevant when scores are tied
+                    if team1_score != team2_score:
+                        penalty_winner = None
+
                     if existing_bet:
                         existing_bet.team1_score_pred = team1_score
                         existing_bet.team2_score_pred = team2_score
+                        existing_bet.penalty_winner = penalty_winner
                         existing_bet.updated_at = datetime.utcnow()
                     else:
                         new_bet = Bet(
                             user_id=target_user_id,
                             match_id=match_id,
                             team1_score_pred=team1_score,
-                            team2_score_pred=team2_score
+                            team2_score_pred=team2_score,
+                            penalty_winner=penalty_winner
                         )
                         db.session.add(new_bet)
                     
@@ -258,5 +268,5 @@ def place_batch_bets():
     # Redirect back appropriately
     if is_admin() and on_behalf_of and on_behalf_of != user.id:
         return redirect(url_for('admin.user_bets', user_id=on_behalf_of))
-    
-    return redirect(url_for('main.matches'))
+
+    return redirect(request.referrer or url_for('main.matches'))

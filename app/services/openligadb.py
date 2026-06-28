@@ -79,6 +79,19 @@ class OpenLigaDBClient:
             return final_result.get('pointsTeam1'), final_result.get('pointsTeam2')
         
         return None, None
+
+    def parse_penalty_winner(self, match_data):
+        """Extract penalty shootout winner from match results (resultTypeID=3)."""
+        results = match_data.get('matchResults', [])
+        for result in results:
+            if result.get('resultTypeID') == 3:  # Penalty result
+                p1 = result.get('pointsTeam1', 0)
+                p2 = result.get('pointsTeam2', 0)
+                if p1 > p2:
+                    return 'team1'
+                elif p2 > p1:
+                    return 'team2'
+        return None
     
     # Map groupOrderID -> (round_name, round_type) for knockout rounds
     # groupOrderID 1-3 are Gruppenphase matchdays; 4+ are KO rounds
@@ -152,6 +165,7 @@ class OpenLigaDBClient:
             # Get scores if match is finished
             team1_score, team2_score = self.parse_match_results(match_data)
             is_finished = match_data.get('matchIsFinished', False)
+            penalty_winner = self.parse_penalty_winner(match_data) if is_finished else None
             
             # Determine round_name and round_type
             team1_name = team1.get('teamName', '')
@@ -195,6 +209,8 @@ class OpenLigaDBClient:
                 existing_match.team1_score = team1_score
                 existing_match.team2_score = team2_score
                 existing_match.is_finished = is_finished
+                if penalty_winner is not None:
+                    existing_match.penalty_winner = penalty_winner
                 existing_match.last_updated = datetime.utcnow()
 
                 # Only update team names for KO matches (placeholders get resolved)
@@ -239,7 +255,8 @@ class OpenLigaDBClient:
                     match_date=match_date,
                     team1_score=team1_score,
                     team2_score=team2_score,
-                    is_finished=is_finished
+                    is_finished=is_finished,
+                    penalty_winner=penalty_winner
                 )
                 db.session.add(new_match)
                 new_count += 1
@@ -264,7 +281,7 @@ class OpenLigaDBClient:
             
             bets = Bet.query.filter_by(match_id=match.id).all()
             for bet in bets:
-                points = bet.calculate_points(match.team1_score, match.team2_score)
+                points = bet.calculate_points(match.team1_score, match.team2_score, match=match)
                 bet.points_earned = points
         
         db.session.commit()

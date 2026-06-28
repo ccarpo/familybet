@@ -105,16 +105,17 @@
                                 <span class="text-xl font-bold text-gray-400">:</span>
                             {% elif not match.has_started() and not phase_locks[phase_key].is_locked %}
                                 {% set my_bet = my_bets.get(match.id) %}
-                                <input type="number" name="bets" min="0" placeholder="-"
+                                <input type="number" name="bet_match_{{ match.id }}_team1" min="0" placeholder="-"
                                        value="{% if my_bet %}{{ my_bet.team1_score_pred }}{% endif %}"
                                        class="w-12 text-center text-lg border rounded py-1 focus:ring-2 focus:ring-blue-500"
-                                       onchange="updateKoBet({{ match.id }}, 1, this.value)">
+                                       id="ko_t1_{{ match.id }}"
+                                       oninput="updatePenaltyVisibility({{ match.id }})">
                                 <span class="text-xl font-bold text-gray-400">:</span>
-                                <input type="number" name="bets" min="0" placeholder="-"
+                                <input type="number" name="bet_match_{{ match.id }}_team2" min="0" placeholder="-"
                                        value="{% if my_bet %}{{ my_bet.team2_score_pred }}{% endif %}"
                                        class="w-12 text-center text-lg border rounded py-1 focus:ring-2 focus:ring-blue-500"
-                                       onchange="updateKoBet({{ match.id }}, 2, this.value)">
-                                <input type="hidden" name="bets" id="ko_bet_{{ match.id }}" value="">
+                                       id="ko_t2_{{ match.id }}"
+                                       oninput="updatePenaltyVisibility({{ match.id }})">
                             {% else %}
                                 <span class="text-xl font-bold text-gray-400">:</span>
                             {% endif %}
@@ -129,12 +130,34 @@
                         </div>
                     </div>
 
+                    <!-- Penalty winner row (KO draw prediction) -->
+                    {% if not match.is_finished and not match.has_started() and not phase_locks[phase_key].is_locked %}
+                    {% set my_bet = my_bets.get(match.id) %}
+                    <div class="mt-2 penalty-row-{{ match.id }}" id="penalty_row_{{ match.id }}"
+                         style="display: {% if my_bet and my_bet.team1_score_pred == my_bet.team2_score_pred %}flex{% else %}none{% endif %}; align-items: center; justify-content: center; gap: 0.5rem;">
+                        <span class="text-xs text-gray-500">🥅 Elfmeter-Sieger:</span>
+                        <label class="flex items-center gap-1 cursor-pointer">
+                            <input type="radio" name="penalty_winner_{{ match.id }}" value="team1"
+                                   {% if my_bet and my_bet.penalty_winner == 'team1' %}checked{% endif %}>
+                            <span class="text-sm font-medium">{{ match.team1_name }}</span>
+                        </label>
+                        <label class="flex items-center gap-1 cursor-pointer">
+                            <input type="radio" name="penalty_winner_{{ match.id }}" value="team2"
+                                   {% if my_bet and my_bet.penalty_winner == 'team2' %}checked{% endif %}>
+                            <span class="text-sm font-medium">{{ match.team2_name }}</span>
+                        </label>
+                    </div>
+                    {% endif %}
+
                     <!-- User's Bet Result -->
                     {% if match.id in my_bets %}
                         {% set bet = my_bets[match.id] %}
                         <div class="mt-2 text-center">
                             <span class="text-sm text-gray-600">Dein Tipp: </span>
                             <span class="font-semibold">{{ bet.team1_score_pred }}:{{ bet.team2_score_pred }}</span>
+                            {% if bet.penalty_winner %}
+                                <span class="text-sm text-gray-500"> · n.E.: {% if bet.penalty_winner == 'team1' %}{{ match.team1_name }}{% else %}{{ match.team2_name }}{% endif %}</span>
+                            {% endif %}
                             {% if match.is_finished %}
                                 {% if bet.points_earned > 0 %}
                                     <span class="ml-2 bg-green-100 text-green-700 px-2 py-0.5 rounded font-bold">+{{ bet.points_earned }} Punkte</span>
@@ -149,12 +172,16 @@
             </div>
 
             <!-- Submit Button -->
-            {% if not phase_locks[phase_key].is_locked and matches|selectattr('has_started')|list|length < matches|length %}
+            {% if not phase_locks[phase_key].is_locked %}
+            {% set has_open = namespace(value=false) %}
+            {% for m in matches %}{% if not m.has_started() %}{% set has_open.value = true %}{% endif %}{% endfor %}
+            {% if has_open.value %}
             <div class="p-4 bg-gray-50 border-t">
                 <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-bold text-lg">
                     💾 Tipps speichern
                 </button>
             </div>
+            {% endif %}
             {% endif %}
         </div>
     {% if not phase_locks[phase_key].is_locked %}
@@ -202,23 +229,19 @@
 </div>
 
 <script>
-const koBets = {};
-
-function updateKoBet(matchId, team, value) {
-    if (!koBets[matchId]) {
-        koBets[matchId] = { matchId: matchId, score1: '', score2: '' };
-    }
-
-    if (team === 1) {
-        koBets[matchId].score1 = value;
+function updatePenaltyVisibility(matchId) {
+    const t1 = document.getElementById('ko_t1_' + matchId);
+    const t2 = document.getElementById('ko_t2_' + matchId);
+    const row = document.getElementById('penalty_row_' + matchId);
+    if (!t1 || !t2 || !row) return;
+    const v1 = t1.value;
+    const v2 = t2.value;
+    if (v1 !== '' && v2 !== '' && v1 === v2) {
+        row.style.display = 'flex';
     } else {
-        koBets[matchId].score2 = value;
-    }
-
-    // Update hidden input if both scores are set
-    const hiddenInput = document.getElementById('ko_bet_' + matchId);
-    if (koBets[matchId].score1 !== '' && koBets[matchId].score2 !== '') {
-        hiddenInput.value = matchId + ',' + koBets[matchId].score1 + ',' + koBets[matchId].score2;
+        row.style.display = 'none';
+        // Clear radio selection when not a draw
+        row.querySelectorAll('input[type=radio]').forEach(r => r.checked = false);
     }
 }
 </script>

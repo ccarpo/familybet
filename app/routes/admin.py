@@ -73,12 +73,13 @@ def update_scoring():
         points_exact = int(request.form.get('points_exact', 3))
         points_diff = int(request.form.get('points_diff', 2))
         points_winner = int(request.form.get('points_winner', 1))
+        points_penalty_winner = int(request.form.get('points_penalty_winner', 1))
         points_champion = int(request.form.get('points_champion', 10))
         points_finalist = int(request.form.get('points_finalist', 5))
         points_semifinalist = int(request.form.get('points_semifinalist', 3))
         
         # Validate inputs
-        if any(p < 0 for p in [points_exact, points_diff, points_winner, points_champion, points_finalist, points_semifinalist]):
+        if any(p < 0 for p in [points_exact, points_diff, points_winner, points_penalty_winner, points_champion, points_finalist, points_semifinalist]):
             flash('Punkte können nicht negativ sein', 'error')
             return redirect(url_for('admin.index'))
         
@@ -96,6 +97,7 @@ def update_scoring():
             points_exact=points_exact,
             points_diff=points_diff,
             points_winner=points_winner,
+            points_penalty_winner=points_penalty_winner,
             points_champion=points_champion,
             points_finalist=points_finalist,
             points_semifinalist=points_semifinalist,
@@ -105,7 +107,7 @@ def update_scoring():
         # Recalculate match points with new config (for this tournament)
         ScoringService.recalculate_all_match_points(tournament_id=tournament_id)
         
-        flash(f'Punktesystem aktualisiert: Exakt={points_exact}, Diff={points_diff}, Sieger={points_winner}, Champion={points_champion}. Match-Punkte neu berechnet. Turnierpunkte separat berechnen (Button "Turnierpunkte berechnen").', 'success')
+        flash(f'Punktesystem aktualisiert: Exakt={points_exact}, Diff={points_diff}, Sieger={points_winner}, Elfmeter={points_penalty_winner}, Champion={points_champion}. Match-Punkte neu berechnet.', 'success')
     except ValueError:
         flash('Bitte gültige Zahlen eingeben', 'error')
     except Exception as e:
@@ -394,11 +396,22 @@ def user_bets(user_id):
     user = get_current_user()
     target_user = User.query.get_or_404(user_id)
 
-    # Get all matches
-    all_matches = Match.query.order_by(Match.match_date).all()
+    # Filter matches to active tournament
+    from app.models import Tournament
+    if user and user.selected_tournament_id:
+        active_tournament = Tournament.query.get(user.selected_tournament_id)
+    else:
+        active_tournament = Tournament.query.filter_by(is_active=True).first()
+    league_shortcut = active_tournament.get_league_shortcut() if active_tournament else None
+
+    matches_query = Match.query
+    if league_shortcut:
+        matches_query = matches_query.filter_by(league_shortcut=league_shortcut)
+    all_matches = matches_query.order_by(Match.match_date).all()
 
     # Get user's bets
-    user_bets = {bet.match_id: bet for bet in Bet.query.filter_by(user_id=user_id).all()}
+    match_ids = [m.id for m in all_matches]
+    user_bets = {bet.match_id: bet for bet in Bet.query.filter_by(user_id=user_id).filter(Bet.match_id.in_(match_ids)).all()}
 
     # Get sorted teams for tournament bet dropdown
     from app.services.teams import get_sorted_unique_teams

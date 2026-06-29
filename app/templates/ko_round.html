@@ -79,7 +79,7 @@
                 <div class="p-4 {% if match.is_finished %}bg-gray-50{% elif match.has_started() %}bg-yellow-50{% else %}bg-white{% endif %}">
                     <!-- Match Header with Date -->
                     <div class="flex items-center justify-between mb-2 text-sm text-gray-500">
-                        <span>{{ match.match_date.strftime('%d.%m.%Y %H:%M') }}</span>
+                        <span>{{ match.match_date|local_time('%d.%m.%Y %H:%M') }}</span>
                         {% if match.is_finished %}
                             <span class="px-2 py-0.5 bg-gray-200 rounded text-xs">Beendet</span>
                         {% elif match.has_started() %}

@@ -90,7 +90,7 @@
                                 <tr class="{% if match.is_finished %}bg-gray-50{% endif %}">
                                     <td class="px-2 py-1 font-medium sticky left-0 bg-white border-r">
                                         <span class="truncate block max-w-[120px]">{{ match.team1_name }} vs {{ match.team2_name }}</span>
-                                        <span class="text-gray-400 text-[10px]">{{ match.match_date.strftime('%d.%m') }}</span>
+                                        <span class="text-gray-400 text-[10px]">{{ match.match_date|local_time('%d.%m') }}</span>
                                     </td>
                                     <td class="px-2 py-1 text-center font-bold text-green-700">
                                         {% if match.is_finished %}

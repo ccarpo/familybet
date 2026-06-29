@@ -102,7 +102,7 @@
                                    class="text-blue-600 hover:text-blue-800" title="Bearbeiten">✏️</a>
                             </div>
                             <div class="text-gray-500">
-                                {{ match.match_date.strftime('%d.%m %H:%M') }}
+                                {{ match.match_date|local_time }}
                             </div>
                         </div>
                         {% endfor %}

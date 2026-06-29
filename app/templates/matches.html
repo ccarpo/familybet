@@ -239,7 +239,7 @@
                             </div>
 
                             <!-- Time -->
-                            <span class="text-xs text-gray-500 whitespace-nowrap">{{ match.match_date.strftime('%d.%m %H:%M') }}</span>
+                            <span class="text-xs text-gray-500 whitespace-nowrap">{{ match.match_date|local_time }}</span>
                         </div>
                         {% endfor %}
                     {% endif %}

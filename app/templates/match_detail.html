@@ -37,7 +37,7 @@
             </div>
             
             <div class="mt-3 text-sm text-gray-600">
-                {{ match.match_date.strftime('%d.%m.%Y %H:%M') }} Uhr
+                {{ match.match_date|local_time('%d.%m.%Y %H:%M') }} Uhr
             </div>
         </div>
     </div>

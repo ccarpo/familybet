@@ -23,8 +23,8 @@
             <div class="flex items-center gap-4">
                 <!-- Date/Time -->
                 <div class="text-sm text-gray-500 w-24">
-                    {{ match.match_date.strftime('%d.%m') }}<br>
-                    {{ match.match_date.strftime('%H:%M') }}
+                    {{ match.match_date|local_time('%d.%m') }}<br>
+                    {{ match.match_date|local_time('%H:%M') }}
                 </div>
                 
                 <!-- Teams -->

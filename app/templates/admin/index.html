@@ -108,7 +108,7 @@
                             <div class="text-xs text-gray-400">{{ match.round_name }}</div>
                         </td>
                         <td class="px-2 py-2 text-center text-xs text-gray-500 whitespace-nowrap">
-                            {{ match.match_date.strftime('%d.%m %H:%M') }}
+                            {{ match.match_date|local_time }}
                         </td>
                         <td class="px-2 py-2 text-center font-bold">
                             {% if match.is_finished %}

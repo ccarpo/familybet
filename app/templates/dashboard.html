@@ -120,16 +120,23 @@
                         <td class="px-2 py-2 border">
                             <div class="text-xs text-gray-500">{{ match.round_name }}</div>
                             <div class="font-medium">{{ match.team1_name }} vs {{ match.team2_name }}</div>
-                            <div class="text-xs text-gray-400">{{ match.match_date.strftime('%d.%m. %H:%M') }}</div>
+                            <div class="text-xs text-gray-400">{{ match.match_date|local_time }}</div>
                         </td>
                         <!-- Ergebnis -->
                         <td class="text-center px-2 py-2 border font-bold text-lg">
-                            {% if match.is_live() %}
-                            <span class="inline-flex items-center gap-1 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse mb-1">
-                                ● LIVE {{ match.live_minute() }}'
-                            </span><br>
+                            {% if match.is_finished %}
+                                {{ match.team1_score }}:{{ match.team2_score }}
+                            {% elif match.is_live() %}
+                                <span class="inline-flex items-center gap-1 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse mb-1">
+                                    ● LIVE {{ match.live_minute() }}'
+                                </span><br>
+                                {% if match.team1_score is not none %}{{ match.team1_score }}:{{ match.team2_score }}{% endif %}
+                            {% elif match.has_started() and match.team1_score is not none %}
+                                {{ match.team1_score }}:{{ match.team2_score }}
+                                <div><span class="text-xs font-normal text-yellow-600 bg-yellow-100 px-1.5 py-0.5 rounded">Ausstehend</span></div>
+                            {% else %}
+                                <span class="text-gray-400 text-base">–:–</span>
                             {% endif %}
-                            {{ match.team1_score }}:{{ match.team2_score }}
                         </td>
                         <!-- Tipps & Punkte pro Spieler -->
                         {% for u in all_users %}
@@ -137,9 +144,13 @@
                         <td class="text-center px-2 py-2 border {% if u.id == user.id %}bg-blue-50{% endif %}">
                             {% if bet %}
                                 <div>{{ bet.team1_score_pred }}:{{ bet.team2_score_pred }}</div>
+                                {% if match.is_finished %}
                                 <div class="text-xs font-semibold {% if bet.points_earned > 0 %}text-green-600{% else %}text-red-500{% endif %}">
                                     {{ bet.points_earned }}P
                                 </div>
+                                {% elif match.has_started() %}
+                                <div class="text-xs text-gray-400">–P</div>
+                                {% endif %}
                             {% else %}
                                 <span class="text-gray-300">-</span>
                             {% endif %}
@@ -192,7 +203,7 @@
                                 <div class="font-bold mt-1">{{ match.team1_score }}:{{ match.team2_score }}</div>
                                 {% endif %}
                             {% else %}
-                                <div>{{ match.match_date.strftime('%d.%m. %H:%M') }}</div>
+                                <div>{{ match.match_date|local_time }}</div>
                             {% endif %}
                         </td>
                         <!-- Tipps pro Spieler -->

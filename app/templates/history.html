@@ -30,7 +30,7 @@
                             <a href="{{ url_for('main.match_detail', match_id=match.id) }}" class="hover:underline">
                                 <div class="text-xs text-gray-500">{{ match.round_name }}</div>
                                 <div class="font-medium">{{ match.team1_name }} vs {{ match.team2_name }}</div>
-                                <div class="text-xs text-gray-400">{{ match.match_date.strftime('%d.%m. %H:%M') }}</div>
+                                <div class="text-xs text-gray-400">{{ match.match_date|local_time }}</div>
                             </a>
                         </td>
                         <!-- Ergebnis -->

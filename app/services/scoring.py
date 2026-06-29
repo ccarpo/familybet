@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from app import db
 from app.models import User, Match, Bet, TournamentBet
 
@@ -13,9 +14,16 @@ class ScoringService:
         """
         from app.models import Tournament
         
-        # Build match query
-        query = Match.query.filter_by(is_finished=True)
-        
+        from sqlalchemy import or_
+        cutoff = datetime.utcnow() - timedelta(minutes=120)
+
+        # Include officially finished matches AND matches with scores that started >120min ago
+        base_filter = or_(
+            Match.is_finished == True,
+            (Match.team1_score != None) & (Match.team2_score != None) & (Match.match_date <= cutoff)
+        )
+        query = Match.query.filter(base_filter)
+
         # Filter by tournament if specified
         if tournament_id:
             tournament = Tournament.query.get(tournament_id)
@@ -23,7 +31,7 @@ class ScoringService:
                 league_shortcut = tournament.get_league_shortcut()
                 if league_shortcut:
                     query = query.filter_by(league_shortcut=league_shortcut)
-        
+
         finished_matches = query.all()
         
         for match in finished_matches:

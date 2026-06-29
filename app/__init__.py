@@ -43,6 +43,15 @@ def create_app():
         from app.services.scheduler import init_scheduler
         init_scheduler(app)
         
+        # Jinja2 filter: convert naive UTC datetime -> local time (Europe/Berlin = UTC+2 in summer)
+        @app.template_filter('local_time')
+        def local_time_filter(dt, fmt='%d.%m. %H:%M'):
+            if dt is None:
+                return ''
+            from datetime import timedelta
+            local = dt + timedelta(hours=2)
+            return local.strftime(fmt)
+
         # Context processor for tournament globals
         @app.context_processor
         def inject_tournament_globals():

@@ -243,13 +243,13 @@
                 <div>
                     <span class="text-sm">{{ bet.match.team1_name }} vs {{ bet.match.team2_name }}</span>
                     <div class="text-xs text-gray-500">
-                        Dein Tipp: {{ bet.team1_score_pred }}:{{ bet.team2_score_pred }}
+                        Dein Tipp: {{ bet.team1_score_pred }}:{{ bet.team2_score_pred }}{% if bet.penalty_winner %} · n.E. {% if bet.penalty_winner == 'team1' %}{{ bet.match.team1_name }}{% else %}{{ bet.match.team2_name }}{% endif %}{% endif %}
                     </div>
                 </div>
                 {% if bet.match.is_finished %}
                 <div class="text-right">
                     <span class="text-xs text-gray-500">
-                        Ergebnis: {{ bet.match.team1_score }}:{{ bet.match.team2_score }}
+                        Ergebnis: {{ bet.match.team1_score }}:{{ bet.match.team2_score }}{% if bet.match.penalty_winner %} n.E. {% if bet.match.penalty_winner == 'team1' %}{{ bet.match.team1_name }}{% else %}{{ bet.match.team2_name }}{% endif %}{% endif %}
                     </span>
                     <div class="font-bold {% if bet.points_earned > 0 %}text-green-600{% else %}text-red-500{% endif %}">
                         {{ bet.points_earned }} Punkte

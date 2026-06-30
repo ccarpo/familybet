@@ -126,6 +126,11 @@
                         <td class="text-center px-2 py-2 border font-bold text-lg">
                             {% if match.is_finished %}
                                 {{ match.team1_score }}:{{ match.team2_score }}
+                                {% if match.penalty_winner %}
+                                <div class="text-xs font-normal text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded mt-0.5">
+                                    🥅 n.E. {% if match.penalty_winner == 'team1' %}{{ match.team1_name }}{% else %}{{ match.team2_name }}{% endif %}
+                                </div>
+                                {% endif %}
                             {% elif match.is_live() %}
                                 <span class="inline-flex items-center gap-1 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse mb-1">
                                     ● LIVE {{ match.live_minute() }}'

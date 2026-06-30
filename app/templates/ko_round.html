@@ -100,7 +100,8 @@
                         </div>
 
                         <!-- VS / Betting Inputs -->
-                        <div class="flex items-center gap-2">
+                        <div class="flex flex-col items-center gap-1">
+                          <div class="flex items-center gap-2">
                             {% if match.is_finished %}
                                 <span class="text-xl font-bold text-gray-400">:</span>
                             {% elif not match.has_started() and not phase_locks[phase_key].is_locked %}
@@ -119,6 +120,12 @@
                             {% else %}
                                 <span class="text-xl font-bold text-gray-400">:</span>
                             {% endif %}
+                          </div>
+                          {% if match.is_finished and match.penalty_winner %}
+                          <div class="text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded text-center whitespace-nowrap">
+                              🥅 n.E. {% if match.penalty_winner == 'team1' %}{{ match.team1_name }}{% else %}{{ match.team2_name }}{% endif %}
+                          </div>
+                          {% endif %}
                         </div>
 
                         <!-- Team 2 -->

@@ -238,29 +238,32 @@ class Bet(db.Model):
         pred_diff = self.team1_score_pred - self.team2_score_pred
         actual_diff = actual_team1_score - actual_team2_score
         
+        is_ko = match.round_type == 'knockout' if match else False
+        actual_draw = actual_diff == 0
+        predicted_draw = pred_diff == 0
+
+        def _penalty_bonus():
+            """Return bonus points if this is a KO draw and penalty winner was predicted correctly."""
+            if is_ko and predicted_draw and actual_draw and self.penalty_winner:
+                actual_penalty_winner = match.get_penalty_winner() if match else None
+                if actual_penalty_winner and self.penalty_winner == actual_penalty_winner:
+                    return config.points_penalty_winner or 0
+            return 0
+
         # Exact match
         if self.team1_score_pred == actual_team1_score and self.team2_score_pred == actual_team2_score:
-            return config.points_exact
-        
+            return config.points_exact + _penalty_bonus()
+
         # Correct goal difference
         if pred_diff == actual_diff:
-            return config.points_diff
-        
+            return config.points_diff + _penalty_bonus()
+
         # Correct winner/draw
         pred_winner = 0 if pred_diff == 0 else (1 if pred_diff > 0 else -1)
         actual_winner = 0 if actual_diff == 0 else (1 if actual_diff > 0 else -1)
         if pred_winner == actual_winner:
-            points = config.points_winner
-            # Bonus for correct penalty winner in KO draw (predicted draw + actual draw + KO round)
-            is_ko = match.round_type == 'knockout' if match else False
-            predicted_draw = pred_diff == 0
-            actual_draw = actual_diff == 0
-            if is_ko and predicted_draw and actual_draw and self.penalty_winner:
-                actual_penalty_winner = match.get_penalty_winner() if match else None
-                if actual_penalty_winner and self.penalty_winner == actual_penalty_winner:
-                    points += (config.points_penalty_winner or 0)
-            return points
-        
+            return config.points_winner + _penalty_bonus()
+
         return 0
     
     def __repr__(self):

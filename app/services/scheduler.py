@@ -108,11 +108,18 @@ def smart_sync_job():
             # Send result notifications for finished matches not yet emailed
             from app.models import Match, EmailLog
             from app.services.email_service import send_match_result_notifications
+            now = datetime.utcnow()
             finished_matches = Match.query.filter(Match.is_finished == True).all()
-            notify_matches = [
-                m for m in finished_matches
-                if not EmailLog.already_sent('match_result_queued', ref_id=str(m.id))
-            ]
+            notify_matches = []
+            for m in finished_matches:
+                if EmailLog.already_sent('match_result_queued', ref_id=str(m.id)):
+                    continue
+                # For KO draws: wait until penalty_winner is known OR 3h after kickoff
+                if m.round_type == 'knockout' and m.team1_score == m.team2_score:
+                    three_hours_passed = m.match_date and (now - m.match_date) >= timedelta(hours=3)
+                    if not m.penalty_winner and not three_hours_passed:
+                        continue
+                notify_matches.append(m)
             if notify_matches:
                 for match in notify_matches:
                     EmailLog.record('match_result_queued', ref_id=str(match.id))

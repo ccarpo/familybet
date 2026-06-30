@@ -131,17 +131,26 @@ def notify_match_result(user, match, bet):
         return False
     
     result = f"{match.team1_score}:{match.team2_score}"
+    # Penalty winner suffix for KO draws
+    penalty_suffix = ""
+    if match.round_type == 'knockout' and match.team1_score == match.team2_score and match.penalty_winner:
+        pw_name = match.team1_name if match.penalty_winner == 'team1' else match.team2_name
+        penalty_suffix = f" (n.E. {pw_name})"
+
     pred = f"{bet.team1_score_pred}:{bet.team2_score_pred}" if bet else "kein Tipp"
+    if bet and bet.penalty_winner and match.round_type == 'knockout':
+        pred_pw_name = match.team1_name if bet.penalty_winner == 'team1' else match.team2_name
+        pred += f" (n.E. {pred_pw_name})"
     points = bet.points_earned if bet else 0
     points_color = "#16a34a" if points > 0 else "#dc2626"
-    
+
     content = f"""
     <h3>🏁 Spielergebnis: {match.team1_name} vs {match.team2_name}</h3>
     <p>Hallo <strong>{user.name}</strong>,</p>
     <table style="width:100%;border-collapse:collapse;margin:16px 0">
       <tr style="background:#f3f4f6">
         <td style="padding:8px 12px;font-weight:bold">Ergebnis</td>
-        <td style="padding:8px 12px;font-size:1.4em;font-weight:bold;text-align:center">{result}</td>
+        <td style="padding:8px 12px;font-size:1.4em;font-weight:bold;text-align:center">{result}{penalty_suffix}</td>
       </tr>
       <tr>
         <td style="padding:8px 12px;font-weight:bold">Dein Tipp</td>
@@ -153,7 +162,7 @@ def notify_match_result(user, match, bet):
       </tr>
     </table>
     """
-    subject = f"🏁 Ergebnis: {match.team1_name} {result} {match.team2_name} – {points} Punkte"
+    subject = f"🏁 Ergebnis: {match.team1_name} {result}{penalty_suffix} {match.team2_name} – {points} Punkte"
     return send_email(user.email, subject, _render(content))
 
 
